@@ -6,6 +6,7 @@ const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 const { Client, Authenticator } = require('minecraft-launcher-core');
 const { Auth, lexicon } = require('msmc');
+const DiscordRPC = require('discord-rpc');
 
 const DEFAULT_SETTINGS = {
   authMode: 'offline',
@@ -20,6 +21,9 @@ const DEFAULT_SETTINGS = {
 };
 
 let mainWindow;
+let discordClient;
+let discordReady = false;
+let discordStartTime = Date.now();
 
 function appVersion() {
   return app.getVersion();
@@ -52,6 +56,53 @@ function readUpdateSource() {
   }
 
   return '';
+}
+
+function readDiscordPresenceConfig() {
+  const candidates = [
+    path.join(process.resourcesPath || '', 'assets', 'discord-presence.json'),
+    path.join(__dirname, '..', 'assets', 'discord-presence.json')
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!candidate || !fs.existsSync(candidate)) continue;
+      return JSON.parse(fs.readFileSync(candidate, 'utf8'));
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
+function setDiscordActivity(details = 'Kolbász Launcher', state = 'Launcher nyitva') {
+  if (!discordReady || !discordClient) return;
+
+  discordClient.setActivity({
+    details,
+    state,
+    startTimestamp: discordStartTime,
+    largeImageKey: 'kolbasz_launcher',
+    largeImageText: 'Kolbász Launcher',
+    instance: false
+  }).catch(() => {});
+}
+
+function initDiscordPresence() {
+  const config = readDiscordPresenceConfig();
+  const clientId = String(config.clientId || '').trim();
+  if (!clientId) return;
+
+  DiscordRPC.register(clientId);
+  discordClient = new DiscordRPC.Client({ transport: 'ipc' });
+  discordClient.on('ready', () => {
+    discordReady = true;
+    setDiscordActivity();
+  });
+  discordClient.login({ clientId }).catch(() => {
+    discordReady = false;
+  });
 }
 
 function fetchJson(url) {
@@ -398,6 +449,7 @@ async function launchMinecraft(settings) {
   const launcher = new Client();
 
   cleanVersionCache(gameDir, version);
+  setDiscordActivity('Kolbász Launcher', `Minecraft ${version} indítása`);
   sendLaunchStatus(`Minecraft ${version} inditas elokeszitese...`);
   sendLaunchStatus(`Game mappa: ${gameDir}`);
   if (savedJavaPath && savedJavaMajor < requiredJava) {
@@ -517,6 +569,7 @@ async function launchMinecraft(settings) {
         if (settled) return;
         settled = true;
         reportedRunning = true;
+        setDiscordActivity('Kolbász Launcher', `Minecraft ${version} fut`);
         resolve({
           ok: true,
           message: `Minecraft ${version} fut.`
@@ -560,6 +613,8 @@ function launchJar(settings) {
 }
 
 function createWindow() {
+  initDiscordPresence();
+
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 740,

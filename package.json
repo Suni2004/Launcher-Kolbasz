@@ -1,6 +1,6 @@
 {
   "name": "kolbasz-launcher",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Kolbasz Launcher - a polished Windows desktop launcher for Minecraft.",
   "main": "src/main.js",
   "author": "Kolbasz Launcher",
@@ -79,6 +79,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "discord-rpc": "^4.0.1",
     "minecraft-launcher-core": "^3.18.2",
     "msmc": "^5.0.5"
   }
