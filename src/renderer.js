@@ -23,6 +23,10 @@ const microsoftFields = document.querySelector('#microsoftFields');
 const microsoftLogin = document.querySelector('#microsoftLogin');
 const microsoftName = document.querySelector('#microsoftName');
 const characterSummary = document.querySelector('#characterSummary');
+const modrinthQuery = document.querySelector('#modrinthQuery');
+const modrinthLoader = document.querySelector('#modrinthLoader');
+const modrinthSearch = document.querySelector('#modrinthSearch');
+const modrinthResults = document.querySelector('#modrinthResults');
 
 let authMode = 'offline';
 let microsoftLinked = false;
@@ -64,6 +68,8 @@ const api = window.kolbasz ?? {
   }),
   launchJar: async () => ({ ok: false, message: 'Preview mod. Custom Jar inditas az .exe appban aktiv.' }),
   loginMicrosoft: async () => ({ ok: false, message: 'Preview mod. Microsoft login csak az .exe appban aktiv.' }),
+  searchModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktiv.' }),
+  installModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktiv.' }),
   checkUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
   installUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
   onLaunchStatus: () => {},
@@ -107,6 +113,35 @@ function setAuthMode(mode) {
   offlineFields.hidden = authMode !== 'offline';
   microsoftFields.hidden = authMode !== 'microsoft';
   characterSummary.textContent = authMode === 'microsoft' ? 'Eredeti karakter' : 'Tort karakter';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }[char]));
+}
+
+function renderModrinthResults(hits = []) {
+  if (!hits.length) {
+    modrinthResults.innerHTML = '<div class="modrinth-empty">Nincs talalat.</div>';
+    return;
+  }
+
+  modrinthResults.innerHTML = hits.map((hit) => `
+    <article class="mod-card">
+      <img src="${escapeHtml(hit.iconUrl || '../assets/discord-icon.png')}" alt="" />
+      <div>
+        <strong>${escapeHtml(hit.title)}</strong>
+        <p>${escapeHtml(hit.description)}</p>
+        <span>${Number(hit.downloads || 0).toLocaleString('hu-HU')} letoltes</span>
+      </div>
+      <button class="icon-button mod-install" type="button" data-project-id="${escapeHtml(hit.projectId)}" title="Mod telepitese">+</button>
+    </article>
+  `).join('');
 }
 
 async function saveSettings() {
@@ -212,6 +247,41 @@ updateButton.addEventListener('click', async () => {
   const result = await api.installUpdate();
   setMessage(result.message, result.ok);
   updateButton.disabled = false;
+});
+
+modrinthSearch.addEventListener('click', async () => {
+  modrinthSearch.disabled = true;
+  modrinthResults.innerHTML = '<div class="modrinth-empty">Kereses...</div>';
+  setMessage(`Modrinth kereses: ${fields.version.value} / ${modrinthLoader.value}`);
+  const result = await api.searchModrinth({
+    query: modrinthQuery.value,
+    version: fields.version.value,
+    loader: modrinthLoader.value
+  });
+  if (result.ok) renderModrinthResults(result.hits);
+  else modrinthResults.innerHTML = `<div class="modrinth-empty">${escapeHtml(result.message)}</div>`;
+  setMessage(result.message, result.ok);
+  modrinthSearch.disabled = false;
+});
+
+modrinthQuery.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') modrinthSearch.click();
+});
+
+modrinthResults.addEventListener('click', async (event) => {
+  const button = event.target.closest('.mod-install');
+  if (!button) return;
+  await saveSettings();
+  button.disabled = true;
+  setMessage('Modrinth mod telepitese...');
+  const result = await api.installModrinth({
+    projectId: button.dataset.projectId,
+    version: fields.version.value,
+    loader: modrinthLoader.value,
+    gameDir: fields.gameDir.value.trim()
+  });
+  setMessage(result.message, result.ok);
+  button.disabled = false;
 });
 
 document.querySelector('#pickJava').addEventListener('click', async () => {

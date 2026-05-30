@@ -321,6 +321,82 @@ h2 {
   background: rgba(94, 231, 240, 0.06);
 }
 
+.modrinth-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(121, 229, 111, 0.22);
+  background: rgba(121, 229, 111, 0.055);
+}
+
+.modrinth-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 108px 86px;
+  gap: 8px;
+}
+
+.modrinth-controls .ghost {
+  min-height: 46px;
+  padding: 0 12px;
+}
+
+.modrinth-results {
+  display: grid;
+  gap: 8px;
+  max-height: 290px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.mod-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 42px;
+  gap: 10px;
+  align-items: center;
+  min-height: 74px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.mod-card img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mod-card strong,
+.mod-card p,
+.mod-card span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mod-card strong {
+  font-size: 14px;
+}
+
+.mod-card p {
+  margin: 4px 0;
+  color: #dce5d5;
+  font-size: 12px;
+}
+
+.mod-card span,
+.modrinth-empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.modrinth-empty {
+  padding: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+}
+
 .section-title {
   display: flex;
   align-items: center;

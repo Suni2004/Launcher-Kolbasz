@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('kolbasz', {
   openOfficial: (settings) => ipcRenderer.invoke('launcher:open-official', settings),
   launchJar: (settings) => ipcRenderer.invoke('launcher:launch-jar', settings),
   loginMicrosoft: (options) => ipcRenderer.invoke('auth:microsoft-login', options),
+  searchModrinth: (options) => ipcRenderer.invoke('modrinth:search', options),
+  installModrinth: (options) => ipcRenderer.invoke('modrinth:install', options),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
   onLaunchStatus: (callback) => {

@@ -104,6 +104,24 @@
           <select id="version"></select>
         </label>
 
+        <section class="modrinth-card">
+          <div class="section-title">
+            <p class="eyebrow">Modrinth</p>
+            <strong id="modrinthSummary">Instant modok</strong>
+          </div>
+          <div class="modrinth-controls">
+            <input id="modrinthQuery" spellcheck="false" placeholder="Sodium, JEI, Xaero..." />
+            <select id="modrinthLoader" aria-label="Mod loader">
+              <option value="fabric">Fabric</option>
+              <option value="forge">Forge</option>
+              <option value="quilt">Quilt</option>
+              <option value="neoforge">NeoForge</option>
+            </select>
+            <button class="ghost" id="modrinthSearch" type="button">Kereses</button>
+          </div>
+          <div class="modrinth-results" id="modrinthResults"></div>
+        </section>
+
         <div class="memory-card">
           <div class="memory-row">
             <label for="memoryGb">RAM limit</label>

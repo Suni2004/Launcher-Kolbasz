@@ -8,6 +8,9 @@ const { Client, Authenticator } = require('minecraft-launcher-core');
 const { Auth, lexicon } = require('msmc');
 const DiscordRPC = require('discord-rpc');
 
+const MODRINTH_API = 'https://api.modrinth.com/v2';
+const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.4 (github.com/Suni2004/Launcher-Kolbasz)';
+
 const DEFAULT_SETTINGS = {
   authMode: 'offline',
   playerName: 'KolbaszPlayer',
@@ -108,7 +111,7 @@ function initDiscordPresence() {
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https:') ? https : http;
-    client.get(url, (response) => {
+    client.get(url, { headers: { 'User-Agent': MODRINTH_USER_AGENT } }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         fetchJson(new URL(response.headers.location, url).toString()).then(resolve, reject);
         return;
@@ -129,6 +132,16 @@ function fetchJson(url) {
       });
     }).on('error', reject);
   });
+}
+
+function modrinthJson(pathname, params = {}) {
+  const url = new URL(`${MODRINTH_API}${pathname}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      url.searchParams.set(key, value);
+    }
+  });
+  return fetchJson(url.toString());
 }
 
 function downloadFile(url, destination) {
@@ -199,6 +212,110 @@ async function downloadAndInstallUpdate() {
     return { ok: true, message: `Update letoltve es elinditva: ${fileName}` };
   } catch (error) {
     return { ok: false, message: `Update letoltes hiba: ${error.message}` };
+  }
+}
+
+async function searchModrinth(options = {}) {
+  const query = String(options.query || '').trim();
+  const version = String(options.version || DEFAULT_SETTINGS.version).trim();
+  const loader = String(options.loader || 'fabric').trim();
+  if (query.length < 2) {
+    return { ok: false, message: 'Irj be legalabb 2 karaktert a Modrinth kereseshez.' };
+  }
+
+  try {
+    const facets = JSON.stringify([
+      ['project_type:mod'],
+      [`versions:${version}`],
+      [`categories:${loader}`]
+    ]);
+    const result = await modrinthJson('/search', {
+      query,
+      facets,
+      limit: '8',
+      index: 'relevance'
+    });
+    const hits = (result.hits || []).map((hit) => ({
+      projectId: hit.project_id,
+      slug: hit.slug,
+      title: hit.title,
+      description: hit.description,
+      iconUrl: hit.icon_url,
+      downloads: hit.downloads,
+      follows: hit.follows,
+      latestVersion: hit.latest_version,
+      categories: hit.display_categories || []
+    }));
+    return {
+      ok: true,
+      hits,
+      message: hits.length ? `${hits.length} Modrinth talalat.` : 'Nincs talalat ehhez a verziohoz es loaderhez.'
+    };
+  } catch (error) {
+    return { ok: false, message: `Modrinth kereses hiba: ${error.message}` };
+  }
+}
+
+function pickPrimaryModFile(versionData) {
+  const files = versionData.files || [];
+  return files.find((file) => file.primary) || files.find((file) => String(file.filename || '').endsWith('.jar')) || files[0];
+}
+
+async function installModrinthProject(projectId, options, installed, visited) {
+  if (!projectId || visited.has(projectId)) return;
+  visited.add(projectId);
+
+  const versions = await modrinthJson(`/project/${encodeURIComponent(projectId)}/version`, {
+    loaders: JSON.stringify([options.loader]),
+    game_versions: JSON.stringify([options.version]),
+    include_changelog: 'false'
+  });
+  const versionData = versions.find((item) => item.version_type === 'release') || versions[0];
+  if (!versionData) throw new Error(`Nincs kompatibilis verzio: ${projectId}`);
+
+  const requiredDependencies = (versionData.dependencies || [])
+    .filter((dependency) => dependency.dependency_type === 'required' && dependency.project_id);
+  for (const dependency of requiredDependencies) {
+    await installModrinthProject(dependency.project_id, options, installed, visited);
+  }
+
+  const file = pickPrimaryModFile(versionData);
+  if (!file || !file.url || !file.filename) throw new Error(`Nincs letoltheto fajl: ${projectId}`);
+
+  const modsDir = path.join(options.gameDir, 'mods');
+  fs.mkdirSync(modsDir, { recursive: true });
+  const destination = path.join(modsDir, file.filename);
+  if (!fs.existsSync(destination)) {
+    await downloadFile(file.url, destination);
+  }
+
+  installed.push({
+    name: versionData.name,
+    fileName: file.filename,
+    skipped: fs.existsSync(destination)
+  });
+}
+
+async function installModrinth(options = {}) {
+  const projectId = String(options.projectId || '').trim();
+  const version = String(options.version || DEFAULT_SETTINGS.version).trim();
+  const loader = String(options.loader || 'fabric').trim();
+  const gameDir = options.gameDir && fs.existsSync(options.gameDir) ? options.gameDir : defaultGameDir();
+  if (!projectId) return { ok: false, message: 'Nincs kivalasztott Modrinth mod.' };
+
+  try {
+    setDiscordActivity('Kolbász Launcher', 'Modrinth mod telepitese');
+    sendLaunchStatus(`Modrinth telepites: ${projectId}`);
+    const installed = [];
+    await installModrinthProject(projectId, { version, loader, gameDir }, installed, new Set());
+    const names = installed.map((item) => item.fileName).join(', ');
+    return {
+      ok: true,
+      installed,
+      message: `Mod telepitve a mods mappaba: ${names}`
+    };
+  } catch (error) {
+    return { ok: false, message: `Modrinth telepites hiba: ${error.message}` };
   }
 }
 
@@ -649,6 +766,8 @@ ipcMain.handle('launcher:detect', () => findMinecraftLauncher());
 ipcMain.handle('launcher:open-official', (_, settings) => launchMinecraft(settings));
 ipcMain.handle('launcher:launch-jar', (_, settings) => launchJar(settings));
 ipcMain.handle('auth:microsoft-login', (_, options) => loginMicrosoftAccount(Boolean(options?.force)));
+ipcMain.handle('modrinth:search', (_, options) => searchModrinth(options));
+ipcMain.handle('modrinth:install', (_, options) => installModrinth(options));
 ipcMain.handle('dialog:pick-file', async (_, options) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile'],
