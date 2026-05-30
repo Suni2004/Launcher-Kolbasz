@@ -9,7 +9,8 @@ const { Auth, lexicon } = require('msmc');
 const DiscordRPC = require('discord-rpc');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
-const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.4 (github.com/Suni2004/Launcher-Kolbasz)';
+const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.12 (github.com/Suni2004/Launcher-Kolbasz)';
+const LAUNCHER_BRAND = 'Kolb\u00e1szLauncher';
 
 const DEFAULT_SETTINGS = {
   authMode: 'offline',
@@ -132,7 +133,7 @@ function fetchJson(url) {
         try {
           resolve(JSON.parse(body));
         } catch {
-          reject(new Error('Hibas update manifest JSON.'));
+          reject(new Error('Hibás update manifest JSON.'));
         }
       });
     }).on('error', reject);
@@ -150,7 +151,7 @@ function supabaseConfig() {
 function supabaseRequest(method, table, query = '', body) {
   const config = supabaseConfig();
   if (!config.url || !config.key) {
-    return Promise.resolve({ ok: false, message: 'Supabase nincs beallitva.' });
+    return Promise.resolve({ ok: false, message: 'Supabase nincs beállítva.' });
   }
 
   const url = `${config.url}/rest/v1/${table}${query}`;
@@ -216,7 +217,7 @@ async function ensureFriendProfile(settings = readSettings()) {
     last_seen: new Date().toISOString()
   };
   const result = await supabaseRequest('POST', 'launcher_profiles', '?on_conflict=id', body);
-  if (!result.ok) return { ok: false, message: `Friends profil hiba: ${result.message}` };
+  if (!result.ok) return { ok: false, message: `Barát profil hiba: ${result.message}` };
   return { ok: true, profile: identity };
 }
 
@@ -242,7 +243,7 @@ async function getFriendsState(settings = readSettings()) {
   ]);
 
   const failed = [friends, incomingById, incomingByName, outgoing].find((item) => !item.ok);
-  if (failed) return { ok: false, message: `Friends lista hiba: ${failed.message}` };
+  if (failed) return { ok: false, message: `Barátlista hiba: ${failed.message}` };
 
   const incomingMap = new Map();
   [...(incomingById.data || []), ...(incomingByName.data || [])].forEach((request) => incomingMap.set(request.id, request));
@@ -262,11 +263,11 @@ async function addFriend(options = {}) {
   const requester = profileResult.profile;
   const targetName = safePlayerName(options.targetName);
   if (targetName.toLowerCase() === requester.name.toLowerCase()) {
-    return { ok: false, message: 'Sajat magadat nem tudod baratnak jelolni.' };
+    return { ok: false, message: 'Saját magadat nem tudod barátnak jelölni.' };
   }
 
   const target = await findFriendProfileByName(targetName);
-  if (!target.ok) return { ok: false, message: `Barat kereses hiba: ${target.message}` };
+  if (!target.ok) return { ok: false, message: `Barát keresési hiba: ${target.message}` };
 
   const body = {
     requester_id: requester.id,
@@ -276,8 +277,8 @@ async function addFriend(options = {}) {
     status: 'pending'
   };
   const result = await supabaseRequest('POST', 'launcher_friend_requests', '', body);
-  if (!result.ok) return { ok: false, message: `Kerelem kuldes hiba: ${result.message}` };
-  return { ok: true, message: `Baratkerelem elkuldve: ${targetName}` };
+  if (!result.ok) return { ok: false, message: `Kérelem küldési hiba: ${result.message}` };
+  return { ok: true, message: `Barátkérelem elküldve: ${targetName}` };
 }
 
 async function acceptFriend(options = {}) {
@@ -289,7 +290,7 @@ async function acceptFriend(options = {}) {
 
   const requestResult = await supabaseRequest('GET', 'launcher_friend_requests', `?select=*&id=eq.${encodeURIComponent(requestId)}&limit=1`);
   const request = requestResult.data?.[0];
-  if (!requestResult.ok || !request) return { ok: false, message: 'Nem talalom a kerelmet.' };
+  if (!requestResult.ok || !request) return { ok: false, message: 'Nem találom a kérelmet.' };
 
   await supabaseRequest('PATCH', 'launcher_friend_requests', `?id=eq.${encodeURIComponent(requestId)}`, {
     status: 'accepted',
@@ -307,7 +308,7 @@ async function acceptFriend(options = {}) {
     friend_name: me.name
   });
 
-  return { ok: true, message: `Barat elfogadva: ${request.requester_name}` };
+  return { ok: true, message: `Barát elfogadva: ${request.requester_name}` };
 }
 
 async function rejectFriend(options = {}) {
@@ -317,7 +318,7 @@ async function rejectFriend(options = {}) {
     status: 'rejected',
     updated_at: new Date().toISOString()
   });
-  return result.ok ? { ok: true, message: 'Kerelem elutasitva.' } : { ok: false, message: result.message };
+  return result.ok ? { ok: true, message: 'Kérelem elutasítva.' } : { ok: false, message: result.message };
 }
 
 async function listFriendMessages(options = {}) {
@@ -325,7 +326,7 @@ async function listFriendMessages(options = {}) {
   if (!profileResult.ok) return profileResult;
   const me = encodeURIComponent(profileResult.profile.id);
   const friendId = encodeURIComponent(String(options.friendId || ''));
-  if (!friendId) return { ok: false, message: 'Valassz baratot.' };
+  if (!friendId) return { ok: false, message: 'Válassz barátot.' };
 
   const query = `?select=*&or=(and(sender_id.eq.${me},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${me}))&order=created_at.asc&limit=80`;
   const result = await supabaseRequest('GET', 'launcher_messages', query);
@@ -337,14 +338,14 @@ async function sendFriendMessage(options = {}) {
   if (!profileResult.ok) return profileResult;
   const body = String(options.body || '').trim().slice(0, 500);
   const friendId = String(options.friendId || '');
-  if (!friendId || !body) return { ok: false, message: 'Ures uzenet vagy nincs kivalasztott barat.' };
+  if (!friendId || !body) return { ok: false, message: 'Üres üzenet vagy nincs kiválasztott barát.' };
 
   const result = await supabaseRequest('POST', 'launcher_messages', '', {
     sender_id: profileResult.profile.id,
     receiver_id: friendId,
     body
   });
-  return result.ok ? { ok: true, message: 'Uzenet elkuldve.' } : { ok: false, message: result.message };
+  return result.ok ? { ok: true, message: 'Üzenet elküldve.' } : { ok: false, message: result.message };
 }
 
 function modrinthJson(pathname, params = {}) {
@@ -359,7 +360,7 @@ function modrinthJson(pathname, params = {}) {
 
 function mavenArtifactPath(name) {
   const parts = String(name).split(':');
-  if (parts.length < 3) throw new Error(`Hibas Maven artifact: ${name}`);
+  if (parts.length < 3) throw new Error(`Hibás Maven artifact: ${name}`);
   const [group, artifact, version, classifier] = parts;
   const suffix = classifier ? `-${classifier}` : '';
   return `${group.replace(/\./g, '/')}/${artifact}/${version}/${artifact}-${version}${suffix}.jar`;
@@ -420,7 +421,7 @@ async function loadMinecraftVersionJson(gameDir, minecraftVersion) {
 
   const manifest = await fetchJson('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
   const entry = (manifest.versions || []).find((item) => item.id === minecraftVersion);
-  if (!entry?.url) throw new Error(`Nem talalom a Mojang manifestben: ${minecraftVersion}`);
+  if (!entry?.url) throw new Error(`Nem találom a Mojang manifestben: ${minecraftVersion}`);
   const versionJson = await fetchJson(entry.url);
   fs.mkdirSync(path.dirname(localPath), { recursive: true });
   fs.writeFileSync(localPath, JSON.stringify(versionJson, null, 2));
@@ -430,7 +431,7 @@ async function loadMinecraftVersionJson(gameDir, minecraftVersion) {
 async function ensureFabricProfile(gameDir, minecraftVersion) {
   const loaders = await fetchJson(`https://meta.fabricmc.net/v2/versions/loader/${encodeURIComponent(minecraftVersion)}`);
   const fabric = loaders.find((item) => item.loader?.stable) || loaders[0];
-  if (!fabric?.loader?.version) throw new Error(`Ehhez a verziohoz nincs Fabric loader: ${minecraftVersion}`);
+  if (!fabric?.loader?.version) throw new Error(`Ehhez a verzióhoz nincs Fabric loader: ${minecraftVersion}`);
   const baseVersion = await loadMinecraftVersionJson(gameDir, minecraftVersion);
 
   const versionId = `fabric-loader-${fabric.loader.version}-${minecraftVersion}`;
@@ -506,14 +507,14 @@ async function checkForUpdate() {
   if (!manifestUrl) {
     return {
       ok: false,
-      message: 'Nincs update URL beallitva. Add meg az assets/update-source.json manifestUrl mezojeben.'
+      message: 'Nincs update URL beállítva. Add meg az assets/update-source.json manifestUrl mezőjében.'
     };
   }
 
   try {
     const manifest = await fetchJson(manifestUrl);
     if (!manifest.version || !manifest.url) {
-      return { ok: false, message: 'Az update manifesthez version es url mezok kellenek.' };
+      return { ok: false, message: 'Az update manifesthez version és url mezők kellenek.' };
     }
     const hasUpdate = compareVersions(manifest.version, appVersion()) > 0;
     return {
@@ -523,11 +524,11 @@ async function checkForUpdate() {
       currentVersion: appVersion(),
       latestVersion: manifest.version,
       message: hasUpdate
-        ? `Van frissebb verzio: ${appVersion()} -> ${manifest.version}`
-        : `Nincs frissebb verzio. Aktualis launcher: ${appVersion()}`
+        ? `Van frissebb verzió: ${appVersion()} -> ${manifest.version}`
+        : `Nincs frissebb verzió. Aktuális launcher: ${appVersion()}`
     };
   } catch (error) {
-    return { ok: false, message: `Update ellenorzes hiba: ${error.message}` };
+    return { ok: false, message: `Update ellenőrzési hiba: ${error.message}` };
   }
 }
 
@@ -538,13 +539,13 @@ async function downloadAndInstallUpdate() {
   try {
     const fileName = path.basename(new URL(check.manifest.url).pathname) || 'Kolbasz Launcher Setup.exe';
     const destination = path.join(app.getPath('downloads'), fileName);
-    sendLaunchStatus(`Update letoltese: ${check.manifest.version}`);
+    sendLaunchStatus(`Update letöltése: ${check.manifest.version}`);
     await downloadFile(check.manifest.url, destination);
-    sendLaunchStatus(`Update letoltve: ${destination}`);
+    sendLaunchStatus(`Update letöltve: ${destination}`);
     await shell.openPath(destination);
-    return { ok: true, message: `Update letoltve es elinditva: ${fileName}` };
+    return { ok: true, message: `Update letöltve és elindítva: ${fileName}` };
   } catch (error) {
-    return { ok: false, message: `Update letoltes hiba: ${error.message}` };
+    return { ok: false, message: `Update letöltés hiba: ${error.message}` };
   }
 }
 
@@ -553,7 +554,7 @@ async function searchModrinth(options = {}) {
   const version = String(options.version || DEFAULT_SETTINGS.version).trim();
   const loader = String(options.loader || 'fabric').trim();
   if (query.length < 2) {
-    return { ok: false, message: 'Irj be legalabb 2 karaktert a Modrinth kereseshez.' };
+    return { ok: false, message: 'Írj be legalább 2 karaktert a Modrinth kereséshez.' };
   }
 
   try {
@@ -582,10 +583,10 @@ async function searchModrinth(options = {}) {
     return {
       ok: true,
       hits,
-      message: hits.length ? `${hits.length} Modrinth talalat.` : 'Nincs talalat ehhez a verziohoz es loaderhez.'
+      message: hits.length ? `${hits.length} Modrinth találat.` : 'Nincs találat ehhez a verzióhoz és loaderhez.'
     };
   } catch (error) {
-    return { ok: false, message: `Modrinth kereses hiba: ${error.message}` };
+    return { ok: false, message: `Modrinth keresési hiba: ${error.message}` };
   }
 }
 
@@ -604,7 +605,7 @@ async function installModrinthProject(projectId, options, installed, visited) {
     include_changelog: 'false'
   });
   const versionData = versions.find((item) => item.version_type === 'release') || versions[0];
-  if (!versionData) throw new Error(`Nincs kompatibilis verzio: ${projectId}`);
+  if (!versionData) throw new Error(`Nincs kompatibilis verzió: ${projectId}`);
 
   const requiredDependencies = (versionData.dependencies || [])
     .filter((dependency) => dependency.dependency_type === 'required' && dependency.project_id);
@@ -613,7 +614,7 @@ async function installModrinthProject(projectId, options, installed, visited) {
   }
 
   const file = pickPrimaryModFile(versionData);
-  if (!file || !file.url || !file.filename) throw new Error(`Nincs letoltheto fajl: ${projectId}`);
+  if (!file || !file.url || !file.filename) throw new Error(`Nincs letölthető fájl: ${projectId}`);
 
   const modsDir = path.join(options.gameDir, 'mods');
   fs.mkdirSync(modsDir, { recursive: true });
@@ -634,21 +635,21 @@ async function installModrinth(options = {}) {
   const version = String(options.version || DEFAULT_SETTINGS.version).trim();
   const loader = String(options.loader || 'fabric').trim();
   const gameDir = options.gameDir && fs.existsSync(options.gameDir) ? options.gameDir : defaultGameDir();
-  if (!projectId) return { ok: false, message: 'Nincs kivalasztott Modrinth mod.' };
+  if (!projectId) return { ok: false, message: 'Nincs kiválasztott Modrinth mod.' };
 
   try {
-    setDiscordActivity('Kolbász Launcher', 'Modrinth mod telepitese');
-    sendLaunchStatus(`Modrinth telepites: ${projectId}`);
+    setDiscordActivity('Kolbász Launcher', 'Modrinth mod telepítése');
+    sendLaunchStatus(`Modrinth telepítés: ${projectId}`);
     const installed = [];
     await installModrinthProject(projectId, { version, loader, gameDir }, installed, new Set());
     const names = installed.map((item) => item.fileName).join(', ');
     return {
       ok: true,
       installed,
-      message: `Mod telepitve a mods mappaba: ${names}`
+      message: `Mod telepítve a mods mappába: ${names}`
     };
   } catch (error) {
-    return { ok: false, message: `Modrinth telepites hiba: ${error.message}` };
+    return { ok: false, message: `Modrinth telepítés hiba: ${error.message}` };
   }
 }
 
@@ -675,14 +676,14 @@ function listInstalledMods(settings = {}) {
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
-  return { ok: true, mods, modsDir, message: `${mods.length} mod a mods mappaban.` };
+  return { ok: true, mods, modsDir, message: `${mods.length} mod a mods mappában.` };
 }
 
 function toggleInstalledMod(options = {}) {
   const modsDir = modsDirFor(options);
   const fileName = path.basename(String(options.fileName || ''));
   const current = path.join(modsDir, fileName);
-  if (!fileName || !fs.existsSync(current)) return { ok: false, message: 'Nem talalom a mod fajlt.' };
+  if (!fileName || !fs.existsSync(current)) return { ok: false, message: 'Nem találom a mod fájlt.' };
 
   const nextName = fileName.endsWith('.jar.disabled')
     ? fileName.replace(/\.disabled$/, '')
@@ -696,10 +697,10 @@ function deleteInstalledMod(options = {}) {
   const modsDir = modsDirFor(options);
   const fileName = path.basename(String(options.fileName || ''));
   const filePath = path.join(modsDir, fileName);
-  if (!fileName || !fs.existsSync(filePath)) return { ok: false, message: 'Nem talalom a mod fajlt.' };
+  if (!fileName || !fs.existsSync(filePath)) return { ok: false, message: 'Nem találom a mod fájlt.' };
 
   fs.unlinkSync(filePath);
-  return { ok: true, message: 'Mod torolve.', list: listInstalledMods(options) };
+  return { ok: true, message: 'Mod törölve.', list: listInstalledMods(options) };
 }
 
 async function openModsFolder(options = {}) {
@@ -847,7 +848,7 @@ function friendlyAuthError(error) {
 }
 
 async function loginMicrosoftAccount(force = false) {
-  sendLaunchStatus('Microsoft bejelentkezes inditasa...');
+  sendLaunchStatus('Microsoft bejelentkezés indítása...');
   const current = readSettings();
   const authManager = new Auth('select_account');
   authManager.on('load', (code) => sendLaunchStatus(`Microsoft: ${lexicon.getCode(code)}`));
@@ -855,14 +856,14 @@ async function loginMicrosoftAccount(force = false) {
   try {
     let xboxManager;
     if (!force && current.microsoftRefreshToken) {
-      sendLaunchStatus('Microsoft token frissitese...');
+      sendLaunchStatus('Microsoft token frissítése...');
       xboxManager = await authManager.refresh(current.microsoftRefreshToken);
     } else {
       xboxManager = await authManager.launch('electron', {
         width: 520,
         height: 720,
         resizable: false,
-        title: 'Microsoft bejelentkezes',
+        title: 'Microsoft bejelentkezés',
         autoHideMenuBar: true
       });
     }
@@ -875,7 +876,7 @@ async function loginMicrosoftAccount(force = false) {
       microsoftName: token.profile.name,
       playerName: token.profile.name
     });
-    sendLaunchStatus(`Microsoft fiok csatlakoztatva: ${token.profile.name}`);
+    sendLaunchStatus(`Microsoft fiók csatlakoztatva: ${token.profile.name}`);
     return { ok: true, settings: publicSettings(next), message: `Bejelentkezve: ${token.profile.name}` };
   } catch (error) {
     const message = friendlyAuthError(error);
@@ -910,7 +911,7 @@ async function getLaunchAuthorization(settings) {
     });
     return token.mclc();
   } catch (error) {
-    sendLaunchStatus(`Microsoft token lejart vagy hibas: ${friendlyAuthError(error)}`, false);
+    sendLaunchStatus(`Microsoft token lejárt vagy hibás: ${friendlyAuthError(error)}`, false);
     const login = await loginMicrosoftAccount(true);
     if (!login.ok) throw new Error(login.message);
     const retry = readSettings();
@@ -930,7 +931,7 @@ function deleteIfInvalidJson(filePath) {
     JSON.parse(content);
   } catch {
     fs.unlinkSync(filePath);
-    sendLaunchStatus(`Serult cache torolve: ${path.basename(filePath)}`);
+    sendLaunchStatus(`Sérült cache törölve: ${path.basename(filePath)}`);
   }
 }
 
@@ -961,28 +962,29 @@ async function launchMinecraft(settings) {
   if (enabledMods.length && modLoader !== 'fabric') {
     return {
       ok: false,
-      message: `Modok vannak telepitve, de automata modded inditas jelenleg Fabric-kel mukodik. A Mods fulon valts Fabric loaderre.`
+      message: `Modok vannak telepítve, de automata modded indítás jelenleg Fabric-kel működik. A Modok fülön válts Fabric loaderre.`
     };
   }
 
   if (enabledMods.length && modLoader === 'fabric') {
-    sendLaunchStatus(`Fabric loader elokeszitese ${version} verziohoz...`);
+    sendLaunchStatus(`Fabric loader előkészítése ${version} verzióhoz...`);
     launchVersion = await ensureFabricProfile(gameDir, version);
   }
 
   cleanVersionCache(gameDir, launchVersion);
   setDiscordActivity('Kolbász Launcher', `Minecraft ${version} indítása`);
-  sendLaunchStatus(`Minecraft ${launchVersion} inditas elokeszitese...`);
-  sendLaunchStatus(`Game mappa: ${gameDir}`);
+  sendLaunchStatus(`${LAUNCHER_BRAND} betöltése...`);
+  sendLaunchStatus(`Minecraft ${launchVersion} indítás előkészítése...`);
+  sendLaunchStatus(`Játék mappa: ${gameDir}`);
   if (savedJavaPath && savedJavaMajor < requiredJava) {
-    sendLaunchStatus(`A mentett Java ${savedJavaMajor} tul regi ehhez: Java ${requiredJava} kell. Automatikus Java kereses...`, false);
+    sendLaunchStatus(`A mentett Java ${savedJavaMajor} túl régi ehhez: Java ${requiredJava} kell. Automatikus Java keresés...`, false);
   }
-  sendLaunchStatus(javaPath ? `Java ${getJavaMajor(javaPath)} talalva: ${javaPath}` : `Nem talaltam kompatibilis Java ${requiredJava}+ futtatokornyezetet.`);
+  sendLaunchStatus(javaPath ? `Java ${getJavaMajor(javaPath)} találva: ${javaPath}` : `Nem találtam kompatibilis Java ${requiredJava}+ futtatókörnyezetet.`);
 
   if (!javaPath) {
     return {
       ok: false,
-      message: `Ehhez a verziohoz Java ${requiredJava} kell. Add meg a Java exe mezoben a megfelelo javaw.exe utvonalat.`
+      message: `Ehhez a verzióhoz Java ${requiredJava} kell. Add meg a Java exe mezőben a megfelelő javaw.exe útvonalat.`
     };
   }
 
@@ -990,7 +992,7 @@ async function launchMinecraft(settings) {
   if (actualJava < requiredJava) {
     return {
       ok: false,
-      message: `A kivalasztott Minecraft ${version} Java ${requiredJava}-et ker, de ez csak Java ${actualJava}. Valassz masik Java exe-t.`
+      message: `A kiválasztott Minecraft ${version} Java ${requiredJava}-et kér, de ez csak Java ${actualJava}. Válassz másik Java exe-t.`
     };
   }
 
@@ -1012,6 +1014,10 @@ async function launchMinecraft(settings) {
       max: `${memory}G`,
       min: '1G'
     },
+    customArgs: [
+      `-Dminecraft.launcher.brand=${LAUNCHER_BRAND}`,
+      `-Dminecraft.launcher.version=${appVersion()}`
+    ],
     overrides: {
       gameDirectory: gameDir,
       cwd: gameDir,
@@ -1033,8 +1039,8 @@ async function launchMinecraft(settings) {
 
     launcher.on('debug', (line) => {
       if (line.includes('Launching with arguments')) {
-        lastDebug = 'Minecraft process inditasa...';
-        sendLaunchStatus('Minecraft process inditasa...');
+        lastDebug = 'Minecraft process indítása...';
+        sendLaunchStatus('Minecraft process indítása...');
         return;
       }
       lastDebug = line;
@@ -1053,7 +1059,7 @@ async function launchMinecraft(settings) {
     });
 
     launcher.on('download', (name) => {
-      sendLaunchStatus(`Letoltve: ${name}`);
+      sendLaunchStatus(`Letöltve: ${name}`);
     });
 
     launcher.on('data', (line) => {
@@ -1064,12 +1070,12 @@ async function launchMinecraft(settings) {
     launcher.on('close', (code) => {
       if (!settled) {
         settled = true;
-        resolve({ ok: false, message: `A Minecraft rogton kilepett. Hibakod: ${code ?? 'ismeretlen'}. ${lastDebug}` });
+        resolve({ ok: false, message: `A Minecraft rögtön kilépett. Hibakód: ${code ?? 'ismeretlen'}. ${lastDebug}` });
         return;
       }
 
       if (reportedRunning) {
-        sendLaunchStatus(`Minecraft bezarva. Kod: ${code ?? 'ismeretlen'}`);
+        sendLaunchStatus(`Minecraft bezárva. Kód: ${code ?? 'ismeretlen'}`);
       }
     });
 
@@ -1077,15 +1083,15 @@ async function launchMinecraft(settings) {
       if (settled) return;
       if (!child) {
         settled = true;
-        sendLaunchStatus(`Sikertelen inditas: ${lastDebug}`, false);
+        sendLaunchStatus(`Sikertelen indítás: ${lastDebug}`, false);
         resolve({
           ok: false,
-          message: `Nem sikerult elinditani a(z) ${version} verziot. Ellenorizd a Java elerest. Reszlet: ${lastDebug}`
+          message: `Nem sikerült elindítani a(z) ${version} verziót. Ellenőrizd a Java elérést. Részlet: ${lastDebug}`
         });
         return;
       }
       child.unref();
-      sendLaunchStatus(`Minecraft process elindult. PID: ${child.pid}. Gyors ellenorzes...`);
+      sendLaunchStatus(`Minecraft process elindult. PID: ${child.pid}. Gyors ellenőrzés...`);
 
       setTimeout(() => {
         if (settled) return;
@@ -1100,8 +1106,8 @@ async function launchMinecraft(settings) {
     }).catch((error) => {
       if (settled) return;
       settled = true;
-      sendLaunchStatus(`Inditasi hiba: ${error.message}`, false);
-      resolve({ ok: false, message: `Inditasi hiba: ${error.message}` });
+      sendLaunchStatus(`Indítási hiba: ${error.message}`, false);
+      resolve({ ok: false, message: `Indítási hiba: ${error.message}` });
     });
   });
 }
@@ -1110,16 +1116,16 @@ function launchJar(settings) {
   if (!settings.javaPath || !settings.jarPath) {
     return {
       ok: false,
-      message: 'Adj meg Java eleresi utat es egy futtathato .jar fajlt a Custom Jar inditashoz.'
+      message: 'Adj meg Java elérési utat és egy futtatható .jar fájlt a Custom Jar indításhoz.'
     };
   }
 
   if (!fs.existsSync(settings.javaPath)) {
-    return { ok: false, message: 'A megadott Java eleresi ut nem letezik.' };
+    return { ok: false, message: 'A megadott Java elérési út nem létezik.' };
   }
 
   if (!fs.existsSync(settings.jarPath)) {
-    return { ok: false, message: 'A megadott .jar fajl nem letezik.' };
+    return { ok: false, message: 'A megadott .jar fájl nem létezik.' };
   }
 
   const memory = Math.max(1, Number(settings.memoryGb) || DEFAULT_SETTINGS.memoryGb);
@@ -1131,7 +1137,7 @@ function launchJar(settings) {
   });
   child.unref();
 
-  return { ok: true, message: `Custom Jar elinditva ${memory} GB RAM limittel.` };
+  return { ok: true, message: `Custom Jar elindítva ${memory} GB RAM limittel.` };
 }
 
 function createWindow() {
@@ -1142,7 +1148,7 @@ function createWindow() {
     height: 740,
     minWidth: 960,
     minHeight: 640,
-    title: 'Kolbasz Launcher',
+    title: 'Kolbász Launcher',
     backgroundColor: '#080b0f',
     autoHideMenuBar: true,
     webPreferences: {

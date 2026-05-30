@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Kolbasz Launcher</title>
+    <title>Kolbász Launcher</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -13,11 +13,11 @@
           <div class="brand">
             <div class="brand-mark">K</div>
             <div>
-              <span>Kolbasz</span>
+              <span>Kolbász</span>
               <strong>Launcher</strong>
             </div>
           </div>
-          <div class="status-pill" id="launcherStatus">Ellenorzes...</div>
+          <div class="status-pill" id="launcherStatus">Ellenőrzés...</div>
         </div>
 
         <div class="hero-content">
@@ -25,13 +25,13 @@
             <span>Release</span>
             <strong id="heroVersion">1.21.11</strong>
           </div>
-          <p class="eyebrow">Java Edition control deck</p>
-          <h1>Uj vilag. Egy kattintas.</h1>
-          <p class="lead">Gyors vanilla inditas, tiszta verziovalaszto es finomhangolt RAM kezeles egy modern desktop launcherben.</p>
+          <p class="eyebrow">Java Edition vezérlőpult</p>
+          <h1>Új világ. Egy kattintás.</h1>
+          <p class="lead">Gyors vanilla indítás, tiszta verzióválasztó és finomhangolt RAM kezelés egy modern desktop launcherben.</p>
           <div class="quick-actions">
-            <button class="primary" id="playOfficial"><span>Play</span></button>
+            <button class="primary" id="playOfficial"><span>Indítás</span></button>
             <button class="secondary" id="launchJar"><span>Custom Jar</span></button>
-            <button class="secondary update-action" id="updateLauncher"><span>Update</span></button>
+            <button class="secondary update-action" id="updateLauncher"><span>Frissítés</span></button>
           </div>
         </div>
 
@@ -47,141 +47,109 @@
         </div>
 
         <div class="hero-stats">
-          <div>
-            <span>Verziok</span>
-            <strong>70</strong>
-          </div>
-          <div>
-            <span>Inditas</span>
-            <strong>Java</strong>
-          </div>
-          <div>
-            <span>Memoria</span>
-            <strong id="heroMemory">4 GB</strong>
-          </div>
+          <div><span>Verziók</span><strong>70</strong></div>
+          <div><span>Indítás</span><strong>Java</strong></div>
+          <div><span>Memória</span><strong id="heroMemory">4 GB</strong></div>
         </div>
       </section>
 
       <aside class="panel">
         <div class="panel-header">
           <div>
-            <p class="eyebrow">Launch deck</p>
-            <h2>Beallitasok</h2>
+            <p class="eyebrow">Indítópult</p>
+            <h2>Beállítások</h2>
           </div>
-          <button class="ghost" id="saveSettings">Mentes</button>
+          <button class="ghost" id="saveSettings">Mentés</button>
         </div>
 
-        <nav class="deck-tabs" aria-label="Launcher menu">
-          <button class="deck-tab active" id="tabPlay" type="button">Play</button>
-          <button class="deck-tab" id="tabMods" type="button">Mods</button>
-          <button class="deck-tab" id="tabFriends" type="button">Friends</button>
-          <button class="deck-tab" id="tabSettings" type="button">Settings</button>
+        <nav class="deck-tabs" aria-label="Launcher menü">
+          <button class="deck-tab active" id="tabPlay" type="button">Indítás</button>
+          <button class="deck-tab" id="tabMods" type="button">Modok</button>
+          <button class="deck-tab" id="tabFriends" type="button">Barátok</button>
+          <button class="deck-tab" id="tabSettings" type="button">Beállítások</button>
         </nav>
 
         <div class="view-stack" id="playSettingsView">
-        <section class="character-card">
-          <div class="section-title">
-            <p class="eyebrow">Karakter</p>
-            <strong id="characterSummary">Tort karakter</strong>
-          </div>
-          <div class="auth-switch" role="group" aria-label="Karakter mod">
-            <button class="auth-option active" id="offlineMode" type="button">Tort</button>
-            <button class="auth-option" id="microsoftMode" type="button">Eredeti</button>
-          </div>
-        </section>
+          <section class="character-card">
+            <div class="section-title">
+              <p class="eyebrow">Karakter</p>
+              <strong id="characterSummary">Tört karakter</strong>
+            </div>
+            <div class="auth-switch" role="group" aria-label="Karakter mód">
+              <button class="auth-option active" id="offlineMode" type="button">Tört</button>
+              <button class="auth-option" id="microsoftMode" type="button">Eredeti</button>
+            </div>
+          </section>
 
-        <div class="identity-strip" id="offlineFields">
-          <div class="avatar">K</div>
-          <label>
-            Jatekosnev
-            <input id="playerName" maxlength="24" spellcheck="false" />
-          </label>
-        </div>
-
-        <div class="identity-strip microsoft-strip" id="microsoftFields">
-          <div class="avatar">M</div>
-          <div class="account-box">
-            <span>Microsoft fiok</span>
-            <strong id="microsoftName">Nincs bejelentkezve</strong>
-            <button class="account-button" id="microsoftLogin" type="button">Bejelentkezes</button>
-          </div>
-        </div>
-
-        <div class="feature-grid">
-          <div class="mini-tile">
-            <span>Motor</span>
-            <strong>Java</strong>
-          </div>
-          <div class="mini-tile">
-            <span>Statusz</span>
-            <strong>Ready</strong>
-          </div>
-        </div>
-
-        <label>
-          Verzio
-          <select id="version"></select>
-        </label>
-
-        <div class="memory-card">
-          <div class="memory-row">
-            <label for="memoryGb">RAM limit</label>
-            <output id="memoryValue">4 GB</output>
-          </div>
-          <input id="memoryGb" type="range" min="1" max="16" step="1" />
-        </div>
-
-        <div class="path-stack">
-          <div class="path-field">
-            <label>
-              Java exe
-              <input id="javaPath" spellcheck="false" placeholder="C:\Program Files\Java\...\javaw.exe" />
-            </label>
-            <button class="icon-button" id="pickJava" title="Java kivalasztasa">...</button>
+          <div class="identity-strip" id="offlineFields">
+            <div class="avatar">K</div>
+            <label>Játékosnév<input id="playerName" maxlength="24" spellcheck="false" /></label>
           </div>
 
-          <div class="path-field">
-            <label>
-              Custom .jar
-              <input id="jarPath" spellcheck="false" placeholder="launcher.jar vagy modpack.jar" />
-            </label>
-            <button class="icon-button" id="pickJar" title="Jar kivalasztasa">...</button>
+          <div class="identity-strip microsoft-strip" id="microsoftFields">
+            <div class="avatar">M</div>
+            <div class="account-box">
+              <span>Microsoft fiók</span>
+              <strong id="microsoftName">Nincs bejelentkezve</strong>
+              <button class="account-button" id="microsoftLogin" type="button">Bejelentkezés</button>
+            </div>
           </div>
 
-          <div class="path-field">
-            <label>
-              Game mappa
-              <input id="gameDir" spellcheck="false" placeholder="%APPDATA%\.minecraft" />
-            </label>
-            <button class="icon-button" id="pickFolder" title="Mappa kivalasztasa">...</button>
+          <div class="feature-grid">
+            <div class="mini-tile"><span>Motor</span><strong>Java</strong></div>
+            <div class="mini-tile"><span>Státusz</span><strong>Kész</strong></div>
           </div>
-        </div>
+
+          <label>Verzió<select id="version"></select></label>
+
+          <div class="memory-card">
+            <div class="memory-row">
+              <label for="memoryGb">RAM limit</label>
+              <output id="memoryValue">4 GB</output>
+            </div>
+            <input id="memoryGb" type="range" min="1" max="16" step="1" />
+          </div>
+
+          <div class="path-stack">
+            <div class="path-field">
+              <label>Java exe<input id="javaPath" spellcheck="false" placeholder="C:\Program Files\Java\...\javaw.exe" /></label>
+              <button class="icon-button" id="pickJava" title="Java kiválasztása">...</button>
+            </div>
+            <div class="path-field">
+              <label>Custom .jar<input id="jarPath" spellcheck="false" placeholder="launcher.jar vagy modpack.jar" /></label>
+              <button class="icon-button" id="pickJar" title="Jar kiválasztása">...</button>
+            </div>
+            <div class="path-field">
+              <label>Játék mappa<input id="gameDir" spellcheck="false" placeholder="%APPDATA%\.minecraft" /></label>
+              <button class="icon-button" id="pickFolder" title="Mappa kiválasztása">...</button>
+            </div>
+          </div>
         </div>
 
         <section class="mods-view" id="modsView" hidden>
           <div class="modrinth-card">
             <div class="section-title">
-              <p class="eyebrow">Browse Modrinth</p>
-              <strong id="modrinthSummary">Instant modok</strong>
+              <p class="eyebrow">Modrinth böngészés</p>
+              <strong id="modrinthSummary">Azonnali modok</strong>
             </div>
             <div class="modrinth-controls">
-              <input id="modrinthQuery" spellcheck="false" placeholder="Search mods... (e.g. Iris, JEI)" />
+              <input id="modrinthQuery" spellcheck="false" placeholder="Mod keresése... (pl. Iris, JEI)" />
               <select id="modrinthLoader" aria-label="Mod loader">
                 <option value="fabric">Fabric</option>
                 <option value="forge">Forge</option>
                 <option value="quilt">Quilt</option>
                 <option value="neoforge">NeoForge</option>
               </select>
-              <button class="ghost" id="modrinthSearch" type="button">Search</button>
+              <button class="ghost" id="modrinthSearch" type="button">Keresés</button>
             </div>
             <div class="modrinth-results" id="modrinthResults"></div>
           </div>
 
           <div class="installed-card">
             <div class="section-title">
-              <p class="eyebrow">Installed mods</p>
+              <p class="eyebrow">Telepített modok</p>
               <strong id="installedCount">0</strong>
-              <button class="ghost folder-button" id="openModsFolder" type="button">Folder</button>
+              <button class="ghost folder-button" id="openModsFolder" type="button">Mappa</button>
             </div>
             <div class="installed-list" id="installedMods"></div>
           </div>
@@ -190,18 +158,18 @@
         <section class="friends-view" id="friendsView" hidden>
           <div class="friends-card">
             <div class="section-title">
-              <p class="eyebrow">Friends</p>
+              <p class="eyebrow">Barátok</p>
               <strong id="friendProfileName">Offline</strong>
             </div>
             <div class="friend-add-row">
-              <input id="friendNameInput" spellcheck="false" placeholder="Jatekosnev hozzaadasa" />
-              <button class="ghost" id="addFriendButton" type="button">Add</button>
+              <input id="friendNameInput" spellcheck="false" placeholder="Játékosnév hozzáadása" />
+              <button class="ghost" id="addFriendButton" type="button">Hozzáadás</button>
             </div>
           </div>
 
           <div class="friends-card">
             <div class="section-title">
-              <p class="eyebrow">Requests</p>
+              <p class="eyebrow">Kérelmek</p>
               <strong id="requestCount">0</strong>
             </div>
             <div class="request-list" id="friendRequests"></div>
@@ -209,7 +177,7 @@
 
           <div class="friends-card chat-card">
             <div class="section-title">
-              <p class="eyebrow">Friends list</p>
+              <p class="eyebrow">Barátlista</p>
               <strong id="friendCount">0</strong>
             </div>
             <div class="friend-list" id="friendList"></div>
@@ -217,8 +185,8 @@
               <div class="chat-title" id="chatTitle">Chat</div>
               <div class="chat-messages" id="chatMessages"></div>
               <div class="chat-input-row">
-                <input id="chatInput" maxlength="500" spellcheck="false" placeholder="Uzenet..." />
-                <button class="ghost" id="sendChatButton" type="button">Send</button>
+                <input id="chatInput" maxlength="500" spellcheck="false" placeholder="Üzenet..." />
+                <button class="ghost" id="sendChatButton" type="button">Küldés</button>
               </div>
             </div>
           </div>
@@ -227,8 +195,8 @@
         <div class="news">
           <div class="pulse"></div>
           <div>
-            <h3>Gyors info</h3>
-            <p id="message">Valassz verziot, allits RAM-ot, aztan indulhat a Minecraft.</p>
+            <h3>Gyors infó</h3>
+            <p id="message">Válassz verziót, állíts RAM-ot, aztán indulhat a Minecraft.</p>
           </div>
         </div>
       </aside>

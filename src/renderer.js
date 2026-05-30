@@ -79,7 +79,7 @@ const api = window.kolbasz ?? {
     playerName: 'KolbaszPlayer',
     microsoftName: '',
     microsoftLinked: false,
-    version: '1.21.10',
+    version: '1.21.11',
     modLoader: 'fabric',
     memoryGb: 4,
     javaPath: '',
@@ -90,12 +90,12 @@ const api = window.kolbasz ?? {
   detectLauncher: async () => '',
   openOfficial: async (settings) => ({
     ok: true,
-    message: `Preview mod. Az exe-ben a Minecraft ${settings.version} indul kozvetlenul.`
+    message: `Preview mod. Az exe-ben a Minecraft ${settings.version} indul közvetlenül.`
   }),
-  launchJar: async () => ({ ok: false, message: 'Preview mod. Custom Jar inditas az .exe appban aktiv.' }),
-  loginMicrosoft: async () => ({ ok: false, message: 'Preview mod. Microsoft login csak az .exe appban aktiv.' }),
-  searchModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktiv.' }),
-  installModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktiv.' }),
+  launchJar: async () => ({ ok: false, message: 'Preview mod. Custom Jar indítás az .exe appban aktív.' }),
+  loginMicrosoft: async () => ({ ok: false, message: 'Preview mod. Microsoft login csak az .exe appban aktív.' }),
+  searchModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktív.' }),
+  installModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktív.' }),
   listMods: async () => ({ ok: true, mods: [], message: 'Preview mod.' }),
   toggleMod: async () => ({ ok: false, message: 'Preview mod.' }),
   deleteMod: async () => ({ ok: false, message: 'Preview mod.' }),
@@ -107,8 +107,8 @@ const api = window.kolbasz ?? {
   friendsReject: async () => ({ ok: false, message: 'Preview mod.' }),
   friendsMessages: async () => ({ ok: true, messages: [] }),
   friendsSend: async () => ({ ok: false, message: 'Preview mod.' }),
-  checkUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
-  installUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
+  checkUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktív.' }),
+  installUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktív.' }),
   onLaunchStatus: () => {},
   pickFile: async () => '',
   pickFolder: async () => ''
@@ -166,7 +166,7 @@ function setAuthMode(mode) {
   microsoftMode.classList.toggle('active', authMode === 'microsoft');
   offlineFields.hidden = authMode !== 'offline';
   microsoftFields.hidden = authMode !== 'microsoft';
-  characterSummary.textContent = authMode === 'microsoft' ? 'Eredeti karakter' : 'Tort karakter';
+  characterSummary.textContent = authMode === 'microsoft' ? 'Eredeti karakter' : 'Tört karakter';
   syncHeroCharacter();
 }
 
@@ -182,7 +182,7 @@ function escapeHtml(value) {
 
 function renderModrinthResults(hits = []) {
   if (!hits.length) {
-    modrinthResults.innerHTML = '<div class="modrinth-empty">Nincs talalat.</div>';
+    modrinthResults.innerHTML = '<div class="modrinth-empty">Nincs találat.</div>';
     return;
   }
 
@@ -192,9 +192,9 @@ function renderModrinthResults(hits = []) {
       <div>
         <strong>${escapeHtml(hit.title)}</strong>
         <p>${escapeHtml(hit.description)}</p>
-        <span>${Number(hit.downloads || 0).toLocaleString('hu-HU')} letoltes</span>
+        <span>${Number(hit.downloads || 0).toLocaleString('hu-HU')} letöltés</span>
       </div>
-      <button class="icon-button mod-install" type="button" data-project-id="${escapeHtml(hit.projectId)}" title="Mod telepitese">+</button>
+      <button class="icon-button mod-install" type="button" data-project-id="${escapeHtml(hit.projectId)}" title="Mod telepítése">+</button>
     </article>
   `).join('');
 }
@@ -216,7 +216,7 @@ function setDeckTab(tab) {
 function renderInstalledMods(mods = []) {
   installedCount.textContent = String(mods.length);
   if (!mods.length) {
-    installedMods.innerHTML = '<div class="modrinth-empty">Meg nincs telepitett mod.</div>';
+    installedMods.innerHTML = '<div class="modrinth-empty">Még nincs telepített mod.</div>';
     return;
   }
 
@@ -225,10 +225,10 @@ function renderInstalledMods(mods = []) {
       <div class="mod-icon">M</div>
       <div>
         <strong>${escapeHtml(mod.name)}</strong>
-        <span>${mod.enabled ? 'Enabled' : 'Disabled'} - ${escapeHtml(mod.sizeMb)} MB</span>
+        <span>${mod.enabled ? 'Bekapcsolva' : 'Kikapcsolva'} - ${escapeHtml(mod.sizeMb)} MB</span>
       </div>
       <button class="toggle-mod" data-enabled="${mod.enabled}" data-file-name="${escapeHtml(mod.fileName)}" type="button" title="Mod ki/be"></button>
-      <button class="delete-mod" data-file-name="${escapeHtml(mod.fileName)}" type="button" title="Mod torlese">x</button>
+      <button class="delete-mod" data-file-name="${escapeHtml(mod.fileName)}" type="button" title="Mod törlése">x</button>
     </article>
   `).join('');
 }
@@ -242,7 +242,7 @@ async function refreshInstalledMods() {
 function renderFriendRequests(requests = []) {
   requestCount.textContent = String(requests.length);
   if (!requests.length) {
-    friendRequests.innerHTML = '<div class="modrinth-empty">Nincs bejovo kerelem.</div>';
+    friendRequests.innerHTML = '<div class="modrinth-empty">Nincs bejövő kérelem.</div>';
     return;
   }
 
@@ -251,7 +251,7 @@ function renderFriendRequests(requests = []) {
       <div class="friend-avatar">${escapeHtml(request.requester_name.slice(0, 1).toUpperCase())}</div>
       <div>
         <strong>${escapeHtml(request.requester_name)}</strong>
-        <span>Baratkerelem</span>
+        <span>Barátkérelem</span>
       </div>
       <div class="request-actions">
         <button class="small-action accept" data-request-id="${escapeHtml(request.id)}" type="button">OK</button>
@@ -264,7 +264,7 @@ function renderFriendRequests(requests = []) {
 function renderFriendList(friends = []) {
   friendCount.textContent = String(friends.length);
   if (!friends.length) {
-    friendList.innerHTML = '<div class="modrinth-empty">Meg nincs barat a listaban.</div>';
+    friendList.innerHTML = '<div class="modrinth-empty">Még nincs barát a listában.</div>';
     return;
   }
 
@@ -273,7 +273,7 @@ function renderFriendList(friends = []) {
       <div class="friend-avatar">${escapeHtml(friend.friend_name.slice(0, 1).toUpperCase())}</div>
       <div>
         <strong>${escapeHtml(friend.friend_name)}</strong>
-        <span>Chat megnyitasa</span>
+        <span>Chat megnyitása</span>
       </div>
       <span>Online</span>
     </button>
@@ -283,7 +283,7 @@ function renderFriendList(friends = []) {
 function renderMessages(messages = []) {
   const myId = friendsState?.profile?.id;
   if (!messages.length) {
-    chatMessages.innerHTML = '<div class="modrinth-empty">Meg nincs uzenet.</div>';
+    chatMessages.innerHTML = '<div class="modrinth-empty">Még nincs üzenet.</div>';
     return;
   }
 
@@ -320,7 +320,7 @@ async function openFriendChat(friendId, friendName) {
 async function saveSettings() {
   const saved = await api.saveSettings(readForm());
   hydrate(saved);
-  setMessage('Beallitasok mentve.');
+  setMessage('Beállítások mentve.');
 }
 
 function hydrate(settings) {
@@ -334,9 +334,9 @@ function hydrate(settings) {
   modrinthLoader.value = settings.modLoader || modrinthLoader.value || 'fabric';
   microsoftLinked = Boolean(settings.microsoftLinked);
   microsoftName.textContent = settings.microsoftName || (microsoftLinked ? 'Csatlakoztatva' : 'Nincs bejelentkezve');
-  microsoftLogin.textContent = microsoftLinked ? 'Fiok valtasa' : 'Bejelentkezes';
+  microsoftLogin.textContent = microsoftLinked ? 'Fiók váltása' : 'Bejelentkezés';
   if (!minecraftVersions.includes(fields.version.value)) {
-    fields.version.value = '1.21.10';
+    fields.version.value = '1.21.11';
   }
   syncHeroStats();
   syncHeroCharacter();
@@ -349,7 +349,7 @@ async function boot() {
   });
   hydrate(await api.readSettings());
   const launcher = await api.detectLauncher();
-  launcherStatus.textContent = launcher ? 'Launcher keszen all' : 'Sajat Java launch';
+  launcherStatus.textContent = launcher ? 'Launcher készen áll' : 'Saját Java launch';
   launcherStatus.dataset.state = 'ok';
 }
 
@@ -374,7 +374,7 @@ microsoftLogin.addEventListener('click', async () => {
   setAuthMode('microsoft');
   await saveSettings();
   microsoftLogin.disabled = true;
-  setMessage('Microsoft bejelentkezes megnyitasa...');
+  setMessage('Microsoft bejelentkezés megnyitása...');
   const result = await api.loginMicrosoft({ force: true });
   if (result.settings) hydrate(result.settings);
   setMessage(result.message, result.ok);
@@ -384,7 +384,7 @@ microsoftLogin.addEventListener('click', async () => {
 playButton.addEventListener('click', async () => {
   await saveSettings();
   if (authMode === 'microsoft' && !microsoftLinked) {
-    setMessage('Eredeti modhoz eloszor Microsoft bejelentkezes kell.', false);
+    setMessage('Eredeti módhoz először Microsoft bejelentkezés kell.', false);
     const result = await api.loginMicrosoft({ force: true });
     if (result.settings) hydrate(result.settings);
     setMessage(result.message, result.ok);
@@ -396,7 +396,7 @@ playButton.addEventListener('click', async () => {
   }
   playButton.disabled = true;
   jarButton.disabled = true;
-  setMessage(`Minecraft ${fields.version.value} inditasa...`);
+  setMessage(`Minecraft ${fields.version.value} indítása...`);
   const result = await api.openOfficial(readForm());
   setMessage(result.message, result.ok);
   playButton.disabled = false;
@@ -411,7 +411,7 @@ jarButton.addEventListener('click', async () => {
 
 updateButton.addEventListener('click', async () => {
   updateButton.disabled = true;
-  setMessage('Frissites keresese...');
+  setMessage('Frissítés keresése...');
   const check = await api.checkUpdate();
   if (!check.ok) {
     setMessage(check.message, check.ok);
@@ -419,11 +419,11 @@ updateButton.addEventListener('click', async () => {
     return;
   }
   if (!check.hasUpdate) {
-    setMessage(check.message || 'Nincs frissebb verzio. A launcher naprakész.');
+    setMessage(check.message || 'Nincs frissebb verzió. A launcher naprakész.');
     updateButton.disabled = false;
     return;
   }
-  setMessage(`${check.message}. Letoltes indul...`);
+  setMessage(`${check.message}. Letöltés indul...`);
   const result = await api.installUpdate();
   setMessage(result.message, result.ok);
   updateButton.disabled = false;
@@ -431,8 +431,8 @@ updateButton.addEventListener('click', async () => {
 
 modrinthSearch.addEventListener('click', async () => {
   modrinthSearch.disabled = true;
-  modrinthResults.innerHTML = '<div class="modrinth-empty">Kereses...</div>';
-  setMessage(`Modrinth kereses: ${fields.version.value} / ${modrinthLoader.value}`);
+  modrinthResults.innerHTML = '<div class="modrinth-empty">Keresés...</div>';
+  setMessage(`Modrinth keresés: ${fields.version.value} / ${modrinthLoader.value}`);
   const result = await api.searchModrinth({
     query: modrinthQuery.value,
     version: fields.version.value,
@@ -453,7 +453,7 @@ modrinthResults.addEventListener('click', async (event) => {
   if (!button) return;
   await saveSettings();
   button.disabled = true;
-  setMessage('Modrinth mod telepitese...');
+  setMessage('Modrinth mod telepítése...');
   const result = await api.installModrinth({
     projectId: button.dataset.projectId,
     version: fields.version.value,

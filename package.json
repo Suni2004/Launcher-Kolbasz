@@ -1,9 +1,9 @@
 {
   "name": "kolbasz-launcher",
-  "version": "1.0.11",
-  "description": "Kolbasz Launcher - a polished Windows desktop launcher for Minecraft.",
+  "version": "1.0.12",
+  "description": "Kolbász Launcher - modern Minecraft launcher Windowsra és macOS-re.",
   "main": "src/main.js",
-  "author": "Kolbasz Launcher",
+  "author": "Kolbász Launcher",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "hu.kolbasz.launcher",
-    "productName": "Kolbasz Launcher",
+    "productName": "Kolbász Launcher",
     "files": [
       "src/**/*",
       "assets/**/*",
@@ -39,7 +39,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "dmg": {
-      "artifactName": "Kolbasz Launcher-${version}-mac.${ext}",
+      "artifactName": "Kolbász Launcher-${version}-mac.${ext}",
       "backgroundColor": "#05070a",
       "window": {
         "width": 540,
@@ -67,7 +67,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Kolbasz Launcher",
+      "shortcutName": "Kolbász Launcher",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installer-sidebar.bmp",
