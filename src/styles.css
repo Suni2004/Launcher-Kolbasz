@@ -377,7 +377,7 @@ button:disabled {
 
 .deck-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
   padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -400,7 +400,8 @@ button:disabled {
 }
 
 .view-stack,
-.mods-view {
+.mods-view,
+.friends-view {
   display: grid;
   gap: 18px;
 }
@@ -563,6 +564,130 @@ h2 {
   border: 1px solid rgba(255, 103, 103, 0.24);
   background: rgba(255, 103, 103, 0.08);
   color: var(--red);
+}
+
+.friends-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(94, 231, 240, 0.18);
+  background: rgba(10, 18, 32, 0.62);
+}
+
+.friend-add-row,
+.chat-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px;
+  gap: 8px;
+}
+
+.request-list,
+.friend-list {
+  display: grid;
+  gap: 8px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.friend-row,
+.request-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 58px;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.friend-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, rgba(94, 231, 240, 0.22), rgba(121, 229, 111, 0.14));
+  color: var(--cyan);
+  font-weight: 950;
+}
+
+.friend-row strong,
+.request-row strong {
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-row span,
+.request-row span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.request-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.small-action {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.small-action.accept {
+  border-color: rgba(121, 229, 111, 0.32);
+  color: var(--lime);
+}
+
+.small-action.reject {
+  border-color: rgba(255, 103, 103, 0.28);
+  color: var(--red);
+}
+
+.chat-card {
+  min-height: 300px;
+}
+
+.chat-panel {
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.chat-title {
+  color: var(--cyan);
+  font-weight: 950;
+}
+
+.chat-messages {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.chat-message {
+  max-width: 86%;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  color: #eaf0e8;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.chat-message.mine {
+  justify-self: end;
+  border-color: rgba(121, 229, 111, 0.24);
+  background: rgba(121, 229, 111, 0.12);
 }
 
 .mod-card img {

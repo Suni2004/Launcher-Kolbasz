@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld('kolbasz', {
   toggleMod: (options) => ipcRenderer.invoke('mods:toggle', options),
   deleteMod: (options) => ipcRenderer.invoke('mods:delete', options),
   openModsFolder: (options) => ipcRenderer.invoke('mods:open-folder', options),
+  friendsProfile: (settings) => ipcRenderer.invoke('friends:profile', settings),
+  friendsList: (settings) => ipcRenderer.invoke('friends:list', settings),
+  friendsAdd: (options) => ipcRenderer.invoke('friends:add', options),
+  friendsAccept: (options) => ipcRenderer.invoke('friends:accept', options),
+  friendsReject: (options) => ipcRenderer.invoke('friends:reject', options),
+  friendsMessages: (options) => ipcRenderer.invoke('friends:messages', options),
+  friendsSend: (options) => ipcRenderer.invoke('friends:send', options),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
   onLaunchStatus: (callback) => {

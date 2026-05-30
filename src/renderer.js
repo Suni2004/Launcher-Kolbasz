@@ -29,16 +29,32 @@ const modrinthSearch = document.querySelector('#modrinthSearch');
 const modrinthResults = document.querySelector('#modrinthResults');
 const tabPlay = document.querySelector('#tabPlay');
 const tabMods = document.querySelector('#tabMods');
+const tabFriends = document.querySelector('#tabFriends');
 const tabSettings = document.querySelector('#tabSettings');
 const playSettingsView = document.querySelector('#playSettingsView');
 const modsView = document.querySelector('#modsView');
+const friendsView = document.querySelector('#friendsView');
 const installedMods = document.querySelector('#installedMods');
 const installedCount = document.querySelector('#installedCount');
 const openModsFolder = document.querySelector('#openModsFolder');
 const heroCharacterRender = document.querySelector('#heroCharacterRender');
+const friendProfileName = document.querySelector('#friendProfileName');
+const friendNameInput = document.querySelector('#friendNameInput');
+const addFriendButton = document.querySelector('#addFriendButton');
+const friendRequests = document.querySelector('#friendRequests');
+const friendList = document.querySelector('#friendList');
+const friendCount = document.querySelector('#friendCount');
+const requestCount = document.querySelector('#requestCount');
+const chatPanel = document.querySelector('#chatPanel');
+const chatTitle = document.querySelector('#chatTitle');
+const chatMessages = document.querySelector('#chatMessages');
+const chatInput = document.querySelector('#chatInput');
+const sendChatButton = document.querySelector('#sendChatButton');
 
 let authMode = 'offline';
 let microsoftLinked = false;
+let friendsState = null;
+let selectedFriend = null;
 
 const minecraftVersions = [
   '1.8', '1.8.1', '1.8.2', '1.8.3', '1.8.4', '1.8.5', '1.8.6', '1.8.7', '1.8.8', '1.8.9',
@@ -84,6 +100,13 @@ const api = window.kolbasz ?? {
   toggleMod: async () => ({ ok: false, message: 'Preview mod.' }),
   deleteMod: async () => ({ ok: false, message: 'Preview mod.' }),
   openModsFolder: async () => ({ ok: false, message: 'Preview mod.' }),
+  friendsProfile: async () => ({ ok: false, message: 'Preview mod.' }),
+  friendsList: async () => ({ ok: true, profile: { name: 'Preview' }, friends: [], incoming: [], outgoing: [] }),
+  friendsAdd: async () => ({ ok: false, message: 'Preview mod.' }),
+  friendsAccept: async () => ({ ok: false, message: 'Preview mod.' }),
+  friendsReject: async () => ({ ok: false, message: 'Preview mod.' }),
+  friendsMessages: async () => ({ ok: true, messages: [] }),
+  friendsSend: async () => ({ ok: false, message: 'Preview mod.' }),
   checkUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
   installUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
   onLaunchStatus: () => {},
@@ -178,12 +201,16 @@ function renderModrinthResults(hits = []) {
 
 function setDeckTab(tab) {
   const modsActive = tab === 'mods';
+  const friendsActive = tab === 'friends';
   tabPlay.classList.toggle('active', tab === 'play');
   tabMods.classList.toggle('active', modsActive);
+  tabFriends.classList.toggle('active', friendsActive);
   tabSettings.classList.toggle('active', tab === 'settings');
-  playSettingsView.hidden = modsActive;
+  playSettingsView.hidden = modsActive || friendsActive;
   modsView.hidden = !modsActive;
+  friendsView.hidden = !friendsActive;
   if (modsActive) refreshInstalledMods();
+  if (friendsActive) refreshFriends();
 }
 
 function renderInstalledMods(mods = []) {
@@ -210,6 +237,84 @@ async function refreshInstalledMods() {
   const result = await api.listMods(readForm());
   if (result.ok) renderInstalledMods(result.mods);
   else installedMods.innerHTML = `<div class="modrinth-empty">${escapeHtml(result.message)}</div>`;
+}
+
+function renderFriendRequests(requests = []) {
+  requestCount.textContent = String(requests.length);
+  if (!requests.length) {
+    friendRequests.innerHTML = '<div class="modrinth-empty">Nincs bejovo kerelem.</div>';
+    return;
+  }
+
+  friendRequests.innerHTML = requests.map((request) => `
+    <article class="request-row">
+      <div class="friend-avatar">${escapeHtml(request.requester_name.slice(0, 1).toUpperCase())}</div>
+      <div>
+        <strong>${escapeHtml(request.requester_name)}</strong>
+        <span>Baratkerelem</span>
+      </div>
+      <div class="request-actions">
+        <button class="small-action accept" data-request-id="${escapeHtml(request.id)}" type="button">OK</button>
+        <button class="small-action reject" data-request-id="${escapeHtml(request.id)}" type="button">No</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+function renderFriendList(friends = []) {
+  friendCount.textContent = String(friends.length);
+  if (!friends.length) {
+    friendList.innerHTML = '<div class="modrinth-empty">Meg nincs barat a listaban.</div>';
+    return;
+  }
+
+  friendList.innerHTML = friends.map((friend) => `
+    <button class="friend-row friend-open" data-friend-id="${escapeHtml(friend.friend_id)}" data-friend-name="${escapeHtml(friend.friend_name)}" type="button">
+      <div class="friend-avatar">${escapeHtml(friend.friend_name.slice(0, 1).toUpperCase())}</div>
+      <div>
+        <strong>${escapeHtml(friend.friend_name)}</strong>
+        <span>Chat megnyitasa</span>
+      </div>
+      <span>Online</span>
+    </button>
+  `).join('');
+}
+
+function renderMessages(messages = []) {
+  const myId = friendsState?.profile?.id;
+  if (!messages.length) {
+    chatMessages.innerHTML = '<div class="modrinth-empty">Meg nincs uzenet.</div>';
+    return;
+  }
+
+  chatMessages.innerHTML = messages.map((messageItem) => `
+    <div class="chat-message ${messageItem.sender_id === myId ? 'mine' : ''}">
+      ${escapeHtml(messageItem.body)}
+    </div>
+  `).join('');
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function refreshFriends() {
+  const result = await api.friendsList(readForm());
+  if (!result.ok) {
+    setMessage(result.message, false);
+    return;
+  }
+
+  friendsState = result;
+  friendProfileName.textContent = result.profile.name;
+  renderFriendRequests(result.incoming);
+  renderFriendList(result.friends);
+}
+
+async function openFriendChat(friendId, friendName) {
+  selectedFriend = { id: friendId, name: friendName };
+  chatPanel.hidden = false;
+  chatTitle.textContent = friendName;
+  const result = await api.friendsMessages({ ...readForm(), friendId });
+  if (result.ok) renderMessages(result.messages);
+  else setMessage(result.message, false);
 }
 
 async function saveSettings() {
@@ -251,6 +356,7 @@ async function boot() {
 document.querySelector('#saveSettings').addEventListener('click', saveSettings);
 tabPlay.addEventListener('click', () => setDeckTab('play'));
 tabMods.addEventListener('click', () => setDeckTab('mods'));
+tabFriends.addEventListener('click', () => setDeckTab('friends'));
 tabSettings.addEventListener('click', () => setDeckTab('settings'));
 fields.memoryGb.addEventListener('input', syncHeroStats);
 fields.version.addEventListener('change', syncHeroStats);
@@ -376,6 +482,56 @@ installedMods.addEventListener('click', async (event) => {
 openModsFolder.addEventListener('click', async () => {
   const result = await api.openModsFolder(readForm());
   setMessage(result.message, result.ok);
+});
+
+addFriendButton.addEventListener('click', async () => {
+  addFriendButton.disabled = true;
+  const result = await api.friendsAdd({ ...readForm(), targetName: friendNameInput.value.trim() });
+  setMessage(result.message, result.ok);
+  if (result.ok) {
+    friendNameInput.value = '';
+    await refreshFriends();
+  }
+  addFriendButton.disabled = false;
+});
+
+friendNameInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') addFriendButton.click();
+});
+
+friendRequests.addEventListener('click', async (event) => {
+  const accept = event.target.closest('.accept');
+  const reject = event.target.closest('.reject');
+  const target = accept || reject;
+  if (!target) return;
+
+  target.disabled = true;
+  const payload = { ...readForm(), requestId: target.dataset.requestId };
+  const result = accept ? await api.friendsAccept(payload) : await api.friendsReject(payload);
+  setMessage(result.message, result.ok);
+  await refreshFriends();
+});
+
+friendList.addEventListener('click', async (event) => {
+  const row = event.target.closest('.friend-open');
+  if (!row) return;
+  await openFriendChat(row.dataset.friendId, row.dataset.friendName);
+});
+
+sendChatButton.addEventListener('click', async () => {
+  if (!selectedFriend) return;
+  sendChatButton.disabled = true;
+  const result = await api.friendsSend({ ...readForm(), friendId: selectedFriend.id, body: chatInput.value });
+  setMessage(result.message, result.ok);
+  if (result.ok) {
+    chatInput.value = '';
+    await openFriendChat(selectedFriend.id, selectedFriend.name);
+  }
+  sendChatButton.disabled = false;
+});
+
+chatInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') sendChatButton.click();
 });
 
 document.querySelector('#pickJava').addEventListener('click', async () => {

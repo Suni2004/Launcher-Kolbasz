@@ -29,6 +29,24 @@ let discordClient;
 let discordReady = false;
 let discordStartTime = Date.now();
 
+function readJsonAsset(fileName) {
+  const candidates = [
+    path.join(process.resourcesPath || '', 'assets', fileName),
+    path.join(__dirname, '..', 'assets', fileName)
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!candidate || !fs.existsSync(candidate)) continue;
+      return JSON.parse(fs.readFileSync(candidate, 'utf8'));
+    } catch {
+      return {};
+    }
+  }
+
+  return {};
+}
+
 function appVersion() {
   return app.getVersion();
 }
@@ -63,21 +81,7 @@ function readUpdateSource() {
 }
 
 function readDiscordPresenceConfig() {
-  const candidates = [
-    path.join(process.resourcesPath || '', 'assets', 'discord-presence.json'),
-    path.join(__dirname, '..', 'assets', 'discord-presence.json')
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      if (!candidate || !fs.existsSync(candidate)) continue;
-      return JSON.parse(fs.readFileSync(candidate, 'utf8'));
-    } catch {
-      return {};
-    }
-  }
-
-  return {};
+  return readJsonAsset('discord-presence.json');
 }
 
 function setDiscordActivity(details = 'Kolbász Launcher', state = 'Launcher nyitva') {
@@ -133,6 +137,214 @@ function fetchJson(url) {
       });
     }).on('error', reject);
   });
+}
+
+function supabaseConfig() {
+  const config = readJsonAsset('supabase.json');
+  return {
+    url: String(config.url || '').replace(/\/$/, ''),
+    key: String(config.publishableKey || '')
+  };
+}
+
+function supabaseRequest(method, table, query = '', body) {
+  const config = supabaseConfig();
+  if (!config.url || !config.key) {
+    return Promise.resolve({ ok: false, message: 'Supabase nincs beallitva.' });
+  }
+
+  const url = `${config.url}/rest/v1/${table}${query}`;
+  return new Promise((resolve) => {
+    const payload = body === undefined ? null : JSON.stringify(body);
+    const request = https.request(url, {
+      method,
+      headers: {
+        apikey: config.key,
+        Authorization: `Bearer ${config.key}`,
+        'Content-Type': 'application/json',
+        Prefer: query.includes('on_conflict=') ? 'resolution=merge-duplicates,return=representation' : 'return=representation',
+        ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {})
+      }
+    }, (response) => {
+      let text = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => { text += chunk; });
+      response.on('end', () => {
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          data = text;
+        }
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          resolve({ ok: true, data });
+          return;
+        }
+
+        const message = data?.message || data?.hint || text || `HTTP ${response.statusCode}`;
+        resolve({ ok: false, message });
+      });
+    });
+
+    request.on('error', (error) => resolve({ ok: false, message: error.message }));
+    if (payload) request.write(payload);
+    request.end();
+  });
+}
+
+function friendIdentity(settings = readSettings()) {
+  const mode = settings.authMode === 'microsoft' ? 'microsoft' : 'offline';
+  const rawName = mode === 'microsoft'
+    ? (settings.microsoftName || settings.playerName)
+    : settings.playerName;
+  const name = safePlayerName(rawName);
+  return {
+    id: `${mode}:${name.toLowerCase()}`,
+    name,
+    authMode: mode
+  };
+}
+
+async function ensureFriendProfile(settings = readSettings()) {
+  const identity = friendIdentity(settings);
+  const body = {
+    id: identity.id,
+    name: identity.name,
+    auth_mode: identity.authMode,
+    status: 'online',
+    last_seen: new Date().toISOString()
+  };
+  const result = await supabaseRequest('POST', 'launcher_profiles', '?on_conflict=id', body);
+  if (!result.ok) return { ok: false, message: `Friends profil hiba: ${result.message}` };
+  return { ok: true, profile: identity };
+}
+
+async function findFriendProfileByName(name) {
+  const cleanName = safePlayerName(name);
+  const result = await supabaseRequest('GET', 'launcher_profiles', `?select=*&name=eq.${encodeURIComponent(cleanName)}&limit=1`);
+  if (!result.ok) return result;
+  return { ok: true, profile: result.data?.[0] || null };
+}
+
+async function getFriendsState(settings = readSettings()) {
+  const profileResult = await ensureFriendProfile(settings);
+  if (!profileResult.ok) return profileResult;
+  const profile = profileResult.profile;
+  const own = encodeURIComponent(profile.id);
+  const ownName = encodeURIComponent(profile.name);
+
+  const [friends, incomingById, incomingByName, outgoing] = await Promise.all([
+    supabaseRequest('GET', 'launcher_friends', `?select=*&owner_id=eq.${own}&order=friend_name.asc`),
+    supabaseRequest('GET', 'launcher_friend_requests', `?select=*&target_id=eq.${own}&status=eq.pending&order=created_at.desc`),
+    supabaseRequest('GET', 'launcher_friend_requests', `?select=*&target_name=eq.${ownName}&status=eq.pending&order=created_at.desc`),
+    supabaseRequest('GET', 'launcher_friend_requests', `?select=*&requester_id=eq.${own}&status=eq.pending&order=created_at.desc`)
+  ]);
+
+  const failed = [friends, incomingById, incomingByName, outgoing].find((item) => !item.ok);
+  if (failed) return { ok: false, message: `Friends lista hiba: ${failed.message}` };
+
+  const incomingMap = new Map();
+  [...(incomingById.data || []), ...(incomingByName.data || [])].forEach((request) => incomingMap.set(request.id, request));
+
+  return {
+    ok: true,
+    profile,
+    friends: friends.data || [],
+    incoming: [...incomingMap.values()],
+    outgoing: outgoing.data || []
+  };
+}
+
+async function addFriend(options = {}) {
+  const profileResult = await ensureFriendProfile(options);
+  if (!profileResult.ok) return profileResult;
+  const requester = profileResult.profile;
+  const targetName = safePlayerName(options.targetName);
+  if (targetName.toLowerCase() === requester.name.toLowerCase()) {
+    return { ok: false, message: 'Sajat magadat nem tudod baratnak jelolni.' };
+  }
+
+  const target = await findFriendProfileByName(targetName);
+  if (!target.ok) return { ok: false, message: `Barat kereses hiba: ${target.message}` };
+
+  const body = {
+    requester_id: requester.id,
+    requester_name: requester.name,
+    target_id: target.profile?.id || null,
+    target_name: targetName,
+    status: 'pending'
+  };
+  const result = await supabaseRequest('POST', 'launcher_friend_requests', '', body);
+  if (!result.ok) return { ok: false, message: `Kerelem kuldes hiba: ${result.message}` };
+  return { ok: true, message: `Baratkerelem elkuldve: ${targetName}` };
+}
+
+async function acceptFriend(options = {}) {
+  const profileResult = await ensureFriendProfile(options);
+  if (!profileResult.ok) return profileResult;
+  const me = profileResult.profile;
+  const requestId = String(options.requestId || '');
+  if (!requestId) return { ok: false, message: 'Hianyzo friend request.' };
+
+  const requestResult = await supabaseRequest('GET', 'launcher_friend_requests', `?select=*&id=eq.${encodeURIComponent(requestId)}&limit=1`);
+  const request = requestResult.data?.[0];
+  if (!requestResult.ok || !request) return { ok: false, message: 'Nem talalom a kerelmet.' };
+
+  await supabaseRequest('PATCH', 'launcher_friend_requests', `?id=eq.${encodeURIComponent(requestId)}`, {
+    status: 'accepted',
+    target_id: me.id,
+    updated_at: new Date().toISOString()
+  });
+  await supabaseRequest('POST', 'launcher_friends', '?on_conflict=owner_id,friend_id', {
+    owner_id: me.id,
+    friend_id: request.requester_id,
+    friend_name: request.requester_name
+  });
+  await supabaseRequest('POST', 'launcher_friends', '?on_conflict=owner_id,friend_id', {
+    owner_id: request.requester_id,
+    friend_id: me.id,
+    friend_name: me.name
+  });
+
+  return { ok: true, message: `Barat elfogadva: ${request.requester_name}` };
+}
+
+async function rejectFriend(options = {}) {
+  const requestId = String(options.requestId || '');
+  if (!requestId) return { ok: false, message: 'Hianyzo friend request.' };
+  const result = await supabaseRequest('PATCH', 'launcher_friend_requests', `?id=eq.${encodeURIComponent(requestId)}`, {
+    status: 'rejected',
+    updated_at: new Date().toISOString()
+  });
+  return result.ok ? { ok: true, message: 'Kerelem elutasitva.' } : { ok: false, message: result.message };
+}
+
+async function listFriendMessages(options = {}) {
+  const profileResult = await ensureFriendProfile(options);
+  if (!profileResult.ok) return profileResult;
+  const me = encodeURIComponent(profileResult.profile.id);
+  const friendId = encodeURIComponent(String(options.friendId || ''));
+  if (!friendId) return { ok: false, message: 'Valassz baratot.' };
+
+  const query = `?select=*&or=(and(sender_id.eq.${me},receiver_id.eq.${friendId}),and(sender_id.eq.${friendId},receiver_id.eq.${me}))&order=created_at.asc&limit=80`;
+  const result = await supabaseRequest('GET', 'launcher_messages', query);
+  return result.ok ? { ok: true, messages: result.data || [] } : { ok: false, message: result.message };
+}
+
+async function sendFriendMessage(options = {}) {
+  const profileResult = await ensureFriendProfile(options);
+  if (!profileResult.ok) return profileResult;
+  const body = String(options.body || '').trim().slice(0, 500);
+  const friendId = String(options.friendId || '');
+  if (!friendId || !body) return { ok: false, message: 'Ures uzenet vagy nincs kivalasztott barat.' };
+
+  const result = await supabaseRequest('POST', 'launcher_messages', '', {
+    sender_id: profileResult.profile.id,
+    receiver_id: friendId,
+    body
+  });
+  return result.ok ? { ok: true, message: 'Uzenet elkuldve.' } : { ok: false, message: result.message };
 }
 
 function modrinthJson(pathname, params = {}) {
@@ -965,6 +1177,13 @@ ipcMain.handle('mods:list', (_, options) => listInstalledMods(options));
 ipcMain.handle('mods:toggle', (_, options) => toggleInstalledMod(options));
 ipcMain.handle('mods:delete', (_, options) => deleteInstalledMod(options));
 ipcMain.handle('mods:open-folder', (_, options) => openModsFolder(options));
+ipcMain.handle('friends:profile', (_, settings) => ensureFriendProfile(settings));
+ipcMain.handle('friends:list', (_, settings) => getFriendsState(settings));
+ipcMain.handle('friends:add', (_, options) => addFriend(options));
+ipcMain.handle('friends:accept', (_, options) => acceptFriend(options));
+ipcMain.handle('friends:reject', (_, options) => rejectFriend(options));
+ipcMain.handle('friends:messages', (_, options) => listFriendMessages(options));
+ipcMain.handle('friends:send', (_, options) => sendFriendMessage(options));
 ipcMain.handle('dialog:pick-file', async (_, options) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile'],

@@ -74,6 +74,7 @@
         <nav class="deck-tabs" aria-label="Launcher menu">
           <button class="deck-tab active" id="tabPlay" type="button">Play</button>
           <button class="deck-tab" id="tabMods" type="button">Mods</button>
+          <button class="deck-tab" id="tabFriends" type="button">Friends</button>
           <button class="deck-tab" id="tabSettings" type="button">Settings</button>
         </nav>
 
@@ -183,6 +184,43 @@
               <button class="ghost folder-button" id="openModsFolder" type="button">Folder</button>
             </div>
             <div class="installed-list" id="installedMods"></div>
+          </div>
+        </section>
+
+        <section class="friends-view" id="friendsView" hidden>
+          <div class="friends-card">
+            <div class="section-title">
+              <p class="eyebrow">Friends</p>
+              <strong id="friendProfileName">Offline</strong>
+            </div>
+            <div class="friend-add-row">
+              <input id="friendNameInput" spellcheck="false" placeholder="Jatekosnev hozzaadasa" />
+              <button class="ghost" id="addFriendButton" type="button">Add</button>
+            </div>
+          </div>
+
+          <div class="friends-card">
+            <div class="section-title">
+              <p class="eyebrow">Requests</p>
+              <strong id="requestCount">0</strong>
+            </div>
+            <div class="request-list" id="friendRequests"></div>
+          </div>
+
+          <div class="friends-card chat-card">
+            <div class="section-title">
+              <p class="eyebrow">Friends list</p>
+              <strong id="friendCount">0</strong>
+            </div>
+            <div class="friend-list" id="friendList"></div>
+            <div class="chat-panel" id="chatPanel" hidden>
+              <div class="chat-title" id="chatTitle">Chat</div>
+              <div class="chat-messages" id="chatMessages"></div>
+              <div class="chat-input-row">
+                <input id="chatInput" maxlength="500" spellcheck="false" placeholder="Uzenet..." />
+                <button class="ghost" id="sendChatButton" type="button">Send</button>
+              </div>
+            </div>
           </div>
         </section>
 
