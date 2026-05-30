@@ -170,10 +170,56 @@ function normalizeMavenLibrary(library) {
   };
 }
 
+function dedupeLibraries(libraries) {
+  const seen = new Set();
+  const result = [];
+  for (const library of libraries) {
+    if (!library?.name || seen.has(library.name)) continue;
+    seen.add(library.name);
+    result.push(library);
+  }
+  return result;
+}
+
+function mergeFabricArguments(baseArguments, fabricArguments) {
+  if (!fabricArguments) return baseArguments;
+  if (!baseArguments) return fabricArguments;
+  if (Array.isArray(baseArguments)) return baseArguments;
+
+  return {
+    game: [
+      ...(baseArguments.game || []),
+      ...(fabricArguments.client || []),
+      ...(fabricArguments.common || []),
+      ...(fabricArguments.game || [])
+    ],
+    jvm: [
+      ...(baseArguments.jvm || []),
+      ...(fabricArguments.jvm || [])
+    ]
+  };
+}
+
+async function loadMinecraftVersionJson(gameDir, minecraftVersion) {
+  const localPath = path.join(gameDir, 'versions', minecraftVersion, `${minecraftVersion}.json`);
+  if (fs.existsSync(localPath)) {
+    return JSON.parse(fs.readFileSync(localPath, 'utf8'));
+  }
+
+  const manifest = await fetchJson('https://piston-meta.mojang.com/mc/game/version_manifest_v2.json');
+  const entry = (manifest.versions || []).find((item) => item.id === minecraftVersion);
+  if (!entry?.url) throw new Error(`Nem talalom a Mojang manifestben: ${minecraftVersion}`);
+  const versionJson = await fetchJson(entry.url);
+  fs.mkdirSync(path.dirname(localPath), { recursive: true });
+  fs.writeFileSync(localPath, JSON.stringify(versionJson, null, 2));
+  return versionJson;
+}
+
 async function ensureFabricProfile(gameDir, minecraftVersion) {
   const loaders = await fetchJson(`https://meta.fabricmc.net/v2/versions/loader/${encodeURIComponent(minecraftVersion)}`);
   const fabric = loaders.find((item) => item.loader?.stable) || loaders[0];
   if (!fabric?.loader?.version) throw new Error(`Ehhez a verziohoz nincs Fabric loader: ${minecraftVersion}`);
+  const baseVersion = await loadMinecraftVersionJson(gameDir, minecraftVersion);
 
   const versionId = `fabric-loader-${fabric.loader.version}-${minecraftVersion}`;
   const versionDir = path.join(gameDir, 'versions', versionId);
@@ -181,7 +227,7 @@ async function ensureFabricProfile(gameDir, minecraftVersion) {
   fs.mkdirSync(versionDir, { recursive: true });
 
   const meta = fabric.launcherMeta || {};
-  const libraries = [
+  const fabricLibraries = [
     ...(meta.libraries?.common || []),
     ...(meta.libraries?.client || []),
     {
@@ -193,19 +239,17 @@ async function ensureFabricProfile(gameDir, minecraftVersion) {
       url: 'https://maven.fabricmc.net/'
     }
   ].map(normalizeMavenLibrary);
+  const libraries = dedupeLibraries([...(baseVersion.libraries || []), ...fabricLibraries]);
 
   fs.writeFileSync(versionJson, JSON.stringify({
+    ...baseVersion,
     id: versionId,
-    inheritsFrom: minecraftVersion,
-    releaseTime: new Date().toISOString(),
+    releaseTime: baseVersion.releaseTime || new Date().toISOString(),
     time: new Date().toISOString(),
     type: 'release',
     mainClass: typeof meta.mainClass === 'object' ? meta.mainClass.client : meta.mainClass,
     libraries,
-    arguments: meta.arguments || {
-      game: [],
-      jvm: []
-    }
+    arguments: mergeFabricArguments(baseVersion.arguments, meta.arguments)
   }, null, 2));
 
   for (const library of libraries) {
