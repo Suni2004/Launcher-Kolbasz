@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS = {
   playerName: 'KolbaszPlayer',
   microsoftName: '',
   microsoftRefreshToken: '',
-  version: '1.21.10',
+  version: '1.21.11',
   modLoader: 'fabric',
   memoryGb: 4,
   javaPath: '',
