@@ -3,6 +3,7 @@ const fields = {
   playerName: document.querySelector('#playerName'),
   version: document.querySelector('#version'),
   memoryGb: document.querySelector('#memoryGb'),
+  fpsBoost: document.querySelector('#fpsBoost'),
   javaPath: document.querySelector('#javaPath'),
   jarPath: document.querySelector('#jarPath'),
   gameDir: document.querySelector('#gameDir'),
@@ -30,10 +31,12 @@ const modrinthSearch = document.querySelector('#modrinthSearch');
 const modrinthResults = document.querySelector('#modrinthResults');
 const tabPlay = document.querySelector('#tabPlay');
 const tabMods = document.querySelector('#tabMods');
+const tabGallery = document.querySelector('#tabGallery');
 const tabFriends = document.querySelector('#tabFriends');
 const tabSettings = document.querySelector('#tabSettings');
 const playSettingsView = document.querySelector('#playSettingsView');
 const modsView = document.querySelector('#modsView');
+const galleryView = document.querySelector('#galleryView');
 const friendsView = document.querySelector('#friendsView');
 const installedMods = document.querySelector('#installedMods');
 const installedCount = document.querySelector('#installedCount');
@@ -51,6 +54,8 @@ const chatTitle = document.querySelector('#chatTitle');
 const chatMessages = document.querySelector('#chatMessages');
 const chatInput = document.querySelector('#chatInput');
 const sendChatButton = document.querySelector('#sendChatButton');
+const screenshotGrid = document.querySelector('#screenshotGrid');
+const openScreenshotsFolder = document.querySelector('#openScreenshotsFolder');
 const refreshServerStatus = document.querySelector('#refreshServerStatus');
 const serverStatusBadge = document.querySelector('#serverStatusBadge');
 const serverOnline = document.querySelector('#serverOnline');
@@ -89,6 +94,7 @@ const api = window.kolbasz ?? {
     version: '1.21.11',
     modLoader: 'fabric',
     memoryGb: 4,
+    fpsBoost: true,
     javaPath: '',
     jarPath: '',
     gameDir: '',
@@ -106,6 +112,8 @@ const api = window.kolbasz ?? {
   searchModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktív.' }),
   installModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktív.' }),
   listMods: async () => ({ ok: true, mods: [], message: 'Preview mod.' }),
+  listScreenshots: async () => ({ ok: true, screenshots: [], message: 'Preview mod.' }),
+  openScreenshotsFolder: async () => ({ ok: false, message: 'Preview mod.' }),
   toggleMod: async () => ({ ok: false, message: 'Preview mod.' }),
   deleteMod: async () => ({ ok: false, message: 'Preview mod.' }),
   openModsFolder: async () => ({ ok: false, message: 'Preview mod.' }),
@@ -136,6 +144,7 @@ function readForm() {
     version: fields.version.value.trim(),
     modLoader: modrinthLoader.value,
     memoryGb: Number(fields.memoryGb.value),
+    fpsBoost: fields.fpsBoost.checked,
     javaPath: fields.javaPath.value.trim(),
     jarPath: fields.jarPath.value.trim(),
     gameDir: fields.gameDir.value.trim(),
@@ -211,15 +220,19 @@ function renderModrinthResults(hits = []) {
 
 function setDeckTab(tab) {
   const modsActive = tab === 'mods';
+  const galleryActive = tab === 'gallery';
   const friendsActive = tab === 'friends';
   tabPlay.classList.toggle('active', tab === 'play');
   tabMods.classList.toggle('active', modsActive);
+  tabGallery.classList.toggle('active', galleryActive);
   tabFriends.classList.toggle('active', friendsActive);
   tabSettings.classList.toggle('active', tab === 'settings');
-  playSettingsView.hidden = modsActive || friendsActive;
+  playSettingsView.hidden = modsActive || galleryActive || friendsActive;
   modsView.hidden = !modsActive;
+  galleryView.hidden = !galleryActive;
   friendsView.hidden = !friendsActive;
   if (modsActive) refreshInstalledMods();
+  if (galleryActive) refreshScreenshots();
   if (friendsActive) refreshFriends();
 }
 
@@ -247,6 +260,26 @@ async function refreshInstalledMods() {
   const result = await api.listMods(readForm());
   if (result.ok) renderInstalledMods(result.mods);
   else installedMods.innerHTML = `<div class="modrinth-empty">${escapeHtml(result.message)}</div>`;
+}
+
+function renderScreenshots(screenshots = []) {
+  if (!screenshots.length) {
+    screenshotGrid.innerHTML = '<div class="modrinth-empty">Még nincs screenshot.</div>';
+    return;
+  }
+
+  screenshotGrid.innerHTML = screenshots.map((shot) => `
+    <button class="screenshot-card" type="button" data-path="${escapeHtml(shot.path)}">
+      <img src="${escapeHtml(shot.url)}" alt="" />
+      <span>${escapeHtml(shot.name)}</span>
+    </button>
+  `).join('');
+}
+
+async function refreshScreenshots() {
+  const result = await api.listScreenshots(readForm());
+  if (result.ok) renderScreenshots(result.screenshots);
+  else screenshotGrid.innerHTML = `<div class="modrinth-empty">${escapeHtml(result.message)}</div>`;
 }
 
 function renderFriendRequests(requests = []) {
@@ -366,6 +399,7 @@ function hydrate(settings) {
   fields.playerName.value = settings.playerName ?? '';
   fields.version.value = settings.version ?? '';
   fields.memoryGb.value = settings.memoryGb ?? 4;
+  fields.fpsBoost.checked = settings.fpsBoost !== false;
   fields.javaPath.value = settings.javaPath ?? '';
   fields.jarPath.value = settings.jarPath ?? '';
   fields.gameDir.value = settings.gameDir ?? '';
@@ -397,9 +431,11 @@ async function boot() {
 document.querySelector('#saveSettings').addEventListener('click', saveSettings);
 tabPlay.addEventListener('click', () => setDeckTab('play'));
 tabMods.addEventListener('click', () => setDeckTab('mods'));
+tabGallery.addEventListener('click', () => setDeckTab('gallery'));
 tabFriends.addEventListener('click', () => setDeckTab('friends'));
 tabSettings.addEventListener('click', () => setDeckTab('settings'));
 fields.memoryGb.addEventListener('input', syncHeroStats);
+fields.fpsBoost.addEventListener('change', saveSettings);
 fields.version.addEventListener('change', syncHeroStats);
 fields.playerName.addEventListener('input', syncHeroCharacter);
 refreshServerStatus.addEventListener('click', async () => {
@@ -530,6 +566,18 @@ installedMods.addEventListener('click', async (event) => {
 
 openModsFolder.addEventListener('click', async () => {
   const result = await api.openModsFolder(readForm());
+  setMessage(result.message, result.ok);
+});
+
+openScreenshotsFolder.addEventListener('click', async () => {
+  const result = await api.openScreenshotsFolder(readForm());
+  setMessage(result.message, result.ok);
+});
+
+screenshotGrid.addEventListener('click', async (event) => {
+  const card = event.target.closest('.screenshot-card');
+  if (!card) return;
+  const result = await api.openScreenshotsFolder(readForm());
   setMessage(result.message, result.ok);
 });
 

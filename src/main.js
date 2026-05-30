@@ -9,7 +9,7 @@ const { Auth, lexicon } = require('msmc');
 const DiscordRPC = require('discord-rpc');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
-const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.15 (github.com/Suni2004/Launcher-Kolbasz)';
+const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.16 (github.com/Suni2004/Launcher-Kolbasz)';
 const LAUNCHER_BRAND = 'Kolb\u00e1szLauncher';
 const LOADING_PACK_NAME = 'KolbaszLauncherLoading';
 
@@ -24,7 +24,8 @@ const DEFAULT_SETTINGS = {
   javaPath: '',
   jarPath: '',
   gameDir: '',
-  serverAddress: 'mc.hypixel.net'
+  serverAddress: 'mc.hypixel.net',
+  fpsBoost: true
 };
 
 let mainWindow;
@@ -739,6 +740,39 @@ async function installModrinth(options = {}) {
   }
 }
 
+async function ensurePerformanceMods(gameDir, version) {
+  const boostMods = ['fabric-api', 'sodium', 'lithium', 'ferrite-core', 'modernfix'];
+  const installed = [];
+  for (const projectId of boostMods) {
+    try {
+      await installModrinthProject(projectId, { version, loader: 'fabric', gameDir }, installed, new Set());
+    } catch (error) {
+      sendLaunchStatus(`FPS boost mod kihagyva (${projectId}): ${error.message}`, false);
+    }
+  }
+  if (installed.length) {
+    sendLaunchStatus(`FPS boost modok előkészítve: ${installed.map((item) => item.fileName).join(', ')}`);
+  }
+  return installed;
+}
+
+function disableOptifineMods(gameDir) {
+  const modsDir = path.join(gameDir, 'mods');
+  if (!fs.existsSync(modsDir)) return [];
+  const disabled = [];
+  for (const name of fs.readdirSync(modsDir)) {
+    if (!/optifine/i.test(name) || !name.endsWith('.jar')) continue;
+    const current = path.join(modsDir, name);
+    const nextName = `${name}.disabled`;
+    fs.renameSync(current, path.join(modsDir, nextName));
+    disabled.push(name);
+  }
+  if (disabled.length) {
+    sendLaunchStatus(`OptiFine kikapcsolva FPS boosthoz: ${disabled.join(', ')}`, false);
+  }
+  return disabled;
+}
+
 function modsDirFor(settings = {}) {
   const gameDir = settings.gameDir && fs.existsSync(settings.gameDir) ? settings.gameDir : defaultGameDir();
   return path.join(gameDir, 'mods');
@@ -794,6 +828,38 @@ async function openModsFolder(options = {}) {
   fs.mkdirSync(modsDir, { recursive: true });
   await shell.openPath(modsDir);
   return { ok: true, message: `Mods mappa megnyitva: ${modsDir}` };
+}
+
+function screenshotsDirFor(settings = {}) {
+  const gameDir = settings.gameDir && fs.existsSync(settings.gameDir) ? settings.gameDir : defaultGameDir();
+  return path.join(gameDir, 'screenshots');
+}
+
+function listScreenshots(settings = {}) {
+  const screenshotsDir = screenshotsDirFor(settings);
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+  const screenshots = fs.readdirSync(screenshotsDir)
+    .filter((name) => /\.(png|jpe?g|webp)$/i.test(name))
+    .map((name) => {
+      const filePath = path.join(screenshotsDir, name);
+      const stat = fs.statSync(filePath);
+      return {
+        name,
+        path: filePath,
+        url: `file:///${filePath.replace(/\\/g, '/')}`,
+        createdAt: stat.mtimeMs
+      };
+    })
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 24);
+  return { ok: true, screenshots, screenshotsDir, message: `${screenshots.length} screenshot betöltve.` };
+}
+
+async function openScreenshotsFolder(settings = {}) {
+  const screenshotsDir = screenshotsDirFor(settings);
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+  await shell.openPath(screenshotsDir);
+  return { ok: true, message: `Screenshot mappa megnyitva: ${screenshotsDir}` };
 }
 
 function sendLaunchStatus(message, ok = true) {
@@ -1076,6 +1142,7 @@ function enableLoadingScreenPack(gameDir, version) {
   const textureDir = path.join(packDir, 'assets', 'minecraft', 'textures', 'gui', 'title');
   fs.mkdirSync(textureDir, { recursive: true });
   fs.copyFileSync(logoSource, path.join(textureDir, 'mojangstudios.png'));
+  fs.copyFileSync(logoSource, path.join(textureDir, 'mojang.png'));
   fs.writeFileSync(path.join(packDir, 'pack.mcmeta'), JSON.stringify({
     pack: {
       pack_format: packFormatFor(version),
@@ -1107,6 +1174,7 @@ function enableLoadingScreenPack(gameDir, version) {
   packs = packs.filter((pack) => pack !== packEntry);
   packs.push(packEntry);
   upsertOptionLine(lines, 'resourcePacks', JSON.stringify(packs));
+  upsertOptionLine(lines, 'incompatibleResourcePacks', '[]');
   fs.writeFileSync(optionsPath, `${lines.join('\n')}\n`, 'utf8');
   sendLaunchStatus('Kolbász Launcher betöltőképernyő bekapcsolva.');
 }
@@ -1121,17 +1189,30 @@ async function launchMinecraft(settings) {
   const javaPath = savedJavaMajor >= requiredJava ? savedJavaPath : findBundledJava(gameDir, version);
   const memory = Math.max(1, Number(settings.memoryGb) || DEFAULT_SETTINGS.memoryGb);
   const launcher = new Client();
+  const fpsBoost = settings.fpsBoost !== false;
+  if (fpsBoost) {
+    disableOptifineMods(gameDir);
+    await ensurePerformanceMods(gameDir, version);
+  }
 
   const enabledMods = listInstalledMods({ gameDir }).mods.filter((mod) => mod.enabled);
+  const effectiveModLoader = fpsBoost ? 'fabric' : modLoader;
   let launchVersion = version;
-  if (enabledMods.length && modLoader !== 'fabric') {
+  const optifineMod = enabledMods.find((mod) => /optifine/i.test(mod.fileName));
+  if (optifineMod && effectiveModLoader === 'fabric') {
+    return {
+      ok: false,
+      message: `Az OptiFine (${optifineMod.fileName}) nem Fabric mod. Kapcsold ki/töröld, vagy használd a Sodium FPS boostot.`
+    };
+  }
+  if (enabledMods.length && effectiveModLoader !== 'fabric') {
     return {
       ok: false,
       message: `Modok vannak telepítve, de automata modded indítás jelenleg Fabric-kel működik. A Modok fülön válts Fabric loaderre.`
     };
   }
 
-  if (enabledMods.length && modLoader === 'fabric') {
+  if (enabledMods.length && effectiveModLoader === 'fabric') {
     sendLaunchStatus(`Fabric loader előkészítése ${version} verzióhoz...`);
     launchVersion = await ensureFabricProfile(gameDir, version);
   }
@@ -1141,8 +1222,8 @@ async function launchMinecraft(settings) {
   updateFriendActivity({
     ...settings,
     version,
-    modLoader
-  }, 'minecraft', `Minecraftozik - ${version} ${modLoader}`).catch(() => {});
+    modLoader: effectiveModLoader
+  }, 'minecraft', `Minecraftozik - ${version} ${effectiveModLoader}`).catch(() => {});
   setDiscordActivity('Kolbász Launcher', `Minecraft ${version} indítása`);
   sendLaunchStatus(`${LAUNCHER_BRAND} betöltése...`);
   sendLaunchStatus(`Minecraft ${launchVersion} indítás előkészítése...`);
@@ -1181,11 +1262,22 @@ async function launchMinecraft(settings) {
       number: launchVersion,
       type: 'release'
     },
+    customLaunchArgs: [
+      '--version',
+      `KolbászLauncher (${version})`
+    ],
     memory: {
       max: `${memory}G`,
       min: '1G'
     },
     customArgs: [
+      '-XX:+UnlockExperimentalVMOptions',
+      '-XX:+UseG1GC',
+      '-XX:G1NewSizePercent=20',
+      '-XX:G1ReservePercent=20',
+      '-XX:MaxGCPauseMillis=50',
+      '-XX:G1HeapRegionSize=32M',
+      '-Djava.net.preferIPv4Stack=true',
       `-Dminecraft.launcher.brand=${LAUNCHER_BRAND}`,
       `-Dminecraft.launcher.version=${appVersion()}`
     ],
@@ -1360,6 +1452,8 @@ ipcMain.handle('mods:list', (_, options) => listInstalledMods(options));
 ipcMain.handle('mods:toggle', (_, options) => toggleInstalledMod(options));
 ipcMain.handle('mods:delete', (_, options) => deleteInstalledMod(options));
 ipcMain.handle('mods:open-folder', (_, options) => openModsFolder(options));
+ipcMain.handle('screenshots:list', (_, options) => listScreenshots(options));
+ipcMain.handle('screenshots:open-folder', (_, options) => openScreenshotsFolder(options));
 ipcMain.handle('friends:profile', (_, settings) => ensureFriendProfile(settings));
 ipcMain.handle('friends:list', (_, settings) => getFriendsState(settings));
 ipcMain.handle('friends:add', (_, options) => addFriend(options));

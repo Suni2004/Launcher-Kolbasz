@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('kolbasz', {
   toggleMod: (options) => ipcRenderer.invoke('mods:toggle', options),
   deleteMod: (options) => ipcRenderer.invoke('mods:delete', options),
   openModsFolder: (options) => ipcRenderer.invoke('mods:open-folder', options),
+  listScreenshots: (options) => ipcRenderer.invoke('screenshots:list', options),
+  openScreenshotsFolder: (options) => ipcRenderer.invoke('screenshots:open-folder', options),
   friendsProfile: (settings) => ipcRenderer.invoke('friends:profile', settings),
   friendsList: (settings) => ipcRenderer.invoke('friends:list', settings),
   friendsAdd: (options) => ipcRenderer.invoke('friends:add', options),

@@ -65,6 +65,7 @@
         <nav class="deck-tabs" aria-label="Launcher menü">
           <button class="deck-tab active" id="tabPlay" type="button">Indítás</button>
           <button class="deck-tab" id="tabMods" type="button">Modok</button>
+          <button class="deck-tab" id="tabGallery" type="button">Képek</button>
           <button class="deck-tab" id="tabFriends" type="button">Barátok</button>
           <button class="deck-tab" id="tabSettings" type="button">Beállítások</button>
         </nav>
@@ -127,6 +128,11 @@
             <input id="memoryGb" type="range" min="1" max="16" step="1" />
           </div>
 
+          <label class="toggle-row">
+            <input id="fpsBoost" type="checkbox" />
+            FPS boost kliens
+          </label>
+
           <div class="path-stack">
             <div class="path-field">
               <label>Java exe<input id="javaPath" spellcheck="false" placeholder="C:\Program Files\Java\...\javaw.exe" /></label>
@@ -169,6 +175,16 @@
               <button class="ghost folder-button" id="openModsFolder" type="button">Mappa</button>
             </div>
             <div class="installed-list" id="installedMods"></div>
+          </div>
+        </section>
+
+        <section class="gallery-view" id="galleryView" hidden>
+          <div class="gallery-card">
+            <div class="section-title">
+              <p class="eyebrow">Screenshot galéria</p>
+              <button class="ghost folder-button" id="openScreenshotsFolder" type="button">Mappa</button>
+            </div>
+            <div class="screenshot-grid" id="screenshotGrid"></div>
           </div>
         </section>
 

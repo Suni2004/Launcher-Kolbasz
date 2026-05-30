@@ -1,9 +1,11 @@
 {
-  "version": "1.0.15",
-  "url": "https://github.com/Suni2004/Launcher-Kolbasz/releases/download/v1.0.15/Kolbasz.Launcher.Setup.exe",
+  "version": "1.0.16",
+  "url": "https://github.com/Suni2004/Launcher-Kolbasz/releases/download/v1.0.16/Kolbasz.Launcher.Setup.exe",
   "changelog": [
-    "Szerver státusz panel: online állapot, játékosszám, ping és verzió.",
-    "Barát aktivitás: Launcherben, Minecraftozik, verzió/loader vagy Offline.",
-    "Update changelog: frissítés előtt megmutatja az új verzió változásait."
+    "Minecraft ablakcím: KolbászLauncher (verzió) minden indításnál.",
+    "KolbászLauncher betöltőképernyő resource pack alapból bekapcsolva.",
+    "Screenshot galéria a launcherben.",
+    "FPS boost kliens: Fabric + Sodium/Lithium/FerriteCore/ModernFix előkészítés.",
+    "OptiFine crash védelem: FPS boostnál az OptiFine mod automatikusan kikapcsol."
   ]
 }
