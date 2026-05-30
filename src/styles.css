@@ -72,7 +72,8 @@ select {
 
 .topbar,
 .hero-content,
-.hero-stats {
+.hero-stats,
+.character-stage {
   position: relative;
   z-index: 1;
 }
@@ -147,6 +148,152 @@ label,
   width: min(660px, 94%);
   margin-top: auto;
   margin-bottom: 30px;
+}
+
+.character-stage {
+  position: absolute;
+  right: clamp(38px, 8vw, 118px);
+  bottom: 118px;
+  width: 190px;
+  height: 280px;
+  pointer-events: none;
+  filter: drop-shadow(0 28px 42px rgba(0, 0, 0, 0.55));
+}
+
+.grass-block {
+  position: absolute;
+  left: 22px;
+  bottom: 0;
+  width: 146px;
+  height: 78px;
+  transform: skewX(-10deg);
+}
+
+.grass-top {
+  height: 26px;
+  border: 2px solid rgba(216, 255, 106, 0.28);
+  background:
+    linear-gradient(90deg, rgba(216, 255, 106, 0.55), rgba(82, 175, 58, 0.9)),
+    repeating-linear-gradient(90deg, transparent 0 13px, rgba(0, 0, 0, 0.18) 13px 15px);
+}
+
+.grass-side {
+  height: 52px;
+  border: 2px solid rgba(0, 0, 0, 0.36);
+  border-top: 0;
+  background:
+    linear-gradient(135deg, #7c5529, #4a301b),
+    repeating-linear-gradient(90deg, transparent 0 15px, rgba(0, 0, 0, 0.22) 15px 18px);
+  box-shadow: inset 0 13px 0 rgba(42, 112, 38, 0.42);
+}
+
+.minecraft-avatar {
+  position: absolute;
+  left: 50%;
+  bottom: 54px;
+  width: 96px;
+  height: 188px;
+  transform: translateX(-50%);
+  animation: character-bob 2200ms ease-in-out infinite;
+}
+
+.avatar-shadow {
+  position: absolute;
+  left: 8px;
+  bottom: -8px;
+  width: 80px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.38);
+  filter: blur(4px);
+}
+
+.mc-head {
+  position: absolute;
+  left: 20px;
+  top: 0;
+  width: 56px;
+  height: 56px;
+  border: 3px solid rgba(0, 0, 0, 0.42);
+  background: #caa07a;
+  image-rendering: pixelated;
+  overflow: hidden;
+}
+
+.mc-head img {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.mc-body,
+.mc-arm,
+.mc-leg {
+  position: absolute;
+  border: 3px solid rgba(0, 0, 0, 0.36);
+  image-rendering: pixelated;
+}
+
+.mc-body {
+  left: 25px;
+  top: 58px;
+  width: 46px;
+  height: 72px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 38%),
+    #2c8f8c;
+}
+
+.mc-arm {
+  top: 62px;
+  width: 22px;
+  height: 74px;
+  background: #b98563;
+  transform-origin: 50% 10%;
+}
+
+.mc-arm-left {
+  left: 2px;
+  transform: rotate(8deg);
+}
+
+.mc-arm-right {
+  right: 2px;
+  animation: wave-arm 900ms ease-in-out infinite alternate;
+}
+
+.mc-leg {
+  top: 128px;
+  width: 22px;
+  height: 58px;
+  background: #3550a6;
+}
+
+.mc-leg-left {
+  left: 26px;
+}
+
+.mc-leg-right {
+  right: 26px;
+}
+
+@keyframes wave-arm {
+  from {
+    transform: rotate(-132deg) translateY(1px);
+  }
+  to {
+    transform: rotate(-72deg) translateY(-4px);
+  }
+}
+
+@keyframes character-bob {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-5px);
+  }
 }
 
 .version-chip {

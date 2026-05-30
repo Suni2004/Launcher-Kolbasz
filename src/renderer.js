@@ -35,6 +35,7 @@ const modsView = document.querySelector('#modsView');
 const installedMods = document.querySelector('#installedMods');
 const installedCount = document.querySelector('#installedCount');
 const openModsFolder = document.querySelector('#openModsFolder');
+const heroCharacterHead = document.querySelector('#heroCharacterHead');
 
 let authMode = 'offline';
 let microsoftLinked = false;
@@ -118,6 +119,22 @@ function syncHeroStats() {
   heroVersion.textContent = fields.version.value;
 }
 
+function characterNameForPreview() {
+  if (authMode === 'microsoft' && microsoftLinked) {
+    return microsoftName.textContent.trim() || fields.playerName.value.trim() || 'Steve';
+  }
+  return 'Steve';
+}
+
+function syncHeroCharacter() {
+  const characterName = encodeURIComponent(characterNameForPreview());
+  heroCharacterHead.src = `https://minotar.net/avatar/${characterName}/96.png`;
+  heroCharacterHead.onerror = () => {
+    heroCharacterHead.onerror = null;
+    heroCharacterHead.src = 'https://minotar.net/avatar/Steve/96.png';
+  };
+}
+
 function setAuthMode(mode) {
   authMode = mode === 'microsoft' ? 'microsoft' : 'offline';
   offlineMode.classList.toggle('active', authMode === 'offline');
@@ -125,6 +142,7 @@ function setAuthMode(mode) {
   offlineFields.hidden = authMode !== 'offline';
   microsoftFields.hidden = authMode !== 'microsoft';
   characterSummary.textContent = authMode === 'microsoft' ? 'Eredeti karakter' : 'Tort karakter';
+  syncHeroCharacter();
 }
 
 function escapeHtml(value) {
@@ -213,6 +231,7 @@ function hydrate(settings) {
     fields.version.value = '1.21.10';
   }
   syncHeroStats();
+  syncHeroCharacter();
 }
 
 async function boot() {
@@ -232,6 +251,7 @@ tabMods.addEventListener('click', () => setDeckTab('mods'));
 tabSettings.addEventListener('click', () => setDeckTab('settings'));
 fields.memoryGb.addEventListener('input', syncHeroStats);
 fields.version.addEventListener('change', syncHeroStats);
+fields.playerName.addEventListener('input', syncHeroCharacter);
 offlineMode.addEventListener('click', async () => {
   setAuthMode('offline');
   await saveSettings();

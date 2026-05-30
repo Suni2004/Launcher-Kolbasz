@@ -1,6 +1,6 @@
 {
   "name": "kolbasz-launcher",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Kolbasz Launcher - a polished Windows desktop launcher for Minecraft.",
   "main": "src/main.js",
   "author": "Kolbasz Launcher",
