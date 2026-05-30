@@ -60,6 +60,13 @@
           <button class="ghost" id="saveSettings">Mentes</button>
         </div>
 
+        <nav class="deck-tabs" aria-label="Launcher menu">
+          <button class="deck-tab active" id="tabPlay" type="button">Play</button>
+          <button class="deck-tab" id="tabMods" type="button">Mods</button>
+          <button class="deck-tab" id="tabSettings" type="button">Settings</button>
+        </nav>
+
+        <div class="view-stack" id="playSettingsView">
         <section class="character-card">
           <div class="section-title">
             <p class="eyebrow">Karakter</p>
@@ -104,24 +111,6 @@
           <select id="version"></select>
         </label>
 
-        <section class="modrinth-card">
-          <div class="section-title">
-            <p class="eyebrow">Modrinth</p>
-            <strong id="modrinthSummary">Instant modok</strong>
-          </div>
-          <div class="modrinth-controls">
-            <input id="modrinthQuery" spellcheck="false" placeholder="Sodium, JEI, Xaero..." />
-            <select id="modrinthLoader" aria-label="Mod loader">
-              <option value="fabric">Fabric</option>
-              <option value="forge">Forge</option>
-              <option value="quilt">Quilt</option>
-              <option value="neoforge">NeoForge</option>
-            </select>
-            <button class="ghost" id="modrinthSearch" type="button">Kereses</button>
-          </div>
-          <div class="modrinth-results" id="modrinthResults"></div>
-        </section>
-
         <div class="memory-card">
           <div class="memory-row">
             <label for="memoryGb">RAM limit</label>
@@ -155,6 +144,36 @@
             <button class="icon-button" id="pickFolder" title="Mappa kivalasztasa">...</button>
           </div>
         </div>
+        </div>
+
+        <section class="mods-view" id="modsView" hidden>
+          <div class="modrinth-card">
+            <div class="section-title">
+              <p class="eyebrow">Browse Modrinth</p>
+              <strong id="modrinthSummary">Instant modok</strong>
+            </div>
+            <div class="modrinth-controls">
+              <input id="modrinthQuery" spellcheck="false" placeholder="Search mods... (e.g. Iris, JEI)" />
+              <select id="modrinthLoader" aria-label="Mod loader">
+                <option value="fabric">Fabric</option>
+                <option value="forge">Forge</option>
+                <option value="quilt">Quilt</option>
+                <option value="neoforge">NeoForge</option>
+              </select>
+              <button class="ghost" id="modrinthSearch" type="button">Search</button>
+            </div>
+            <div class="modrinth-results" id="modrinthResults"></div>
+          </div>
+
+          <div class="installed-card">
+            <div class="section-title">
+              <p class="eyebrow">Installed mods</p>
+              <strong id="installedCount">0</strong>
+              <button class="ghost folder-button" id="openModsFolder" type="button">Folder</button>
+            </div>
+            <div class="installed-list" id="installedMods"></div>
+          </div>
+        </section>
 
         <div class="news">
           <div class="pulse"></div>

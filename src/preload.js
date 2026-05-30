@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('kolbasz', {
   loginMicrosoft: (options) => ipcRenderer.invoke('auth:microsoft-login', options),
   searchModrinth: (options) => ipcRenderer.invoke('modrinth:search', options),
   installModrinth: (options) => ipcRenderer.invoke('modrinth:install', options),
+  listMods: (options) => ipcRenderer.invoke('mods:list', options),
+  toggleMod: (options) => ipcRenderer.invoke('mods:toggle', options),
+  deleteMod: (options) => ipcRenderer.invoke('mods:delete', options),
+  openModsFolder: (options) => ipcRenderer.invoke('mods:open-folder', options),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   installUpdate: () => ipcRenderer.invoke('update:install'),
   onLaunchStatus: (callback) => {

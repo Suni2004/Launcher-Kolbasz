@@ -319,6 +319,63 @@ async function installModrinth(options = {}) {
   }
 }
 
+function modsDirFor(settings = {}) {
+  const gameDir = settings.gameDir && fs.existsSync(settings.gameDir) ? settings.gameDir : defaultGameDir();
+  return path.join(gameDir, 'mods');
+}
+
+function listInstalledMods(settings = {}) {
+  const modsDir = modsDirFor(settings);
+  fs.mkdirSync(modsDir, { recursive: true });
+  const mods = fs.readdirSync(modsDir)
+    .filter((name) => name.endsWith('.jar') || name.endsWith('.jar.disabled'))
+    .map((name) => {
+      const filePath = path.join(modsDir, name);
+      const stat = fs.statSync(filePath);
+      const enabled = name.endsWith('.jar');
+      const cleanName = name.replace(/\.disabled$/, '');
+      return {
+        name: cleanName,
+        fileName: name,
+        enabled,
+        sizeMb: Number((stat.size / 1024 / 1024).toFixed(1))
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return { ok: true, mods, modsDir, message: `${mods.length} mod a mods mappaban.` };
+}
+
+function toggleInstalledMod(options = {}) {
+  const modsDir = modsDirFor(options);
+  const fileName = path.basename(String(options.fileName || ''));
+  const current = path.join(modsDir, fileName);
+  if (!fileName || !fs.existsSync(current)) return { ok: false, message: 'Nem talalom a mod fajlt.' };
+
+  const nextName = fileName.endsWith('.jar.disabled')
+    ? fileName.replace(/\.disabled$/, '')
+    : `${fileName}.disabled`;
+  const next = path.join(modsDir, nextName);
+  fs.renameSync(current, next);
+  return { ok: true, message: nextName.endsWith('.disabled') ? 'Mod kikapcsolva.' : 'Mod bekapcsolva.', list: listInstalledMods(options) };
+}
+
+function deleteInstalledMod(options = {}) {
+  const modsDir = modsDirFor(options);
+  const fileName = path.basename(String(options.fileName || ''));
+  const filePath = path.join(modsDir, fileName);
+  if (!fileName || !fs.existsSync(filePath)) return { ok: false, message: 'Nem talalom a mod fajlt.' };
+
+  fs.unlinkSync(filePath);
+  return { ok: true, message: 'Mod torolve.', list: listInstalledMods(options) };
+}
+
+async function openModsFolder(options = {}) {
+  const modsDir = modsDirFor(options);
+  fs.mkdirSync(modsDir, { recursive: true });
+  await shell.openPath(modsDir);
+  return { ok: true, message: `Mods mappa megnyitva: ${modsDir}` };
+}
+
 function sendLaunchStatus(message, ok = true) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send('launcher:status', { message, ok });
@@ -768,6 +825,10 @@ ipcMain.handle('launcher:launch-jar', (_, settings) => launchJar(settings));
 ipcMain.handle('auth:microsoft-login', (_, options) => loginMicrosoftAccount(Boolean(options?.force)));
 ipcMain.handle('modrinth:search', (_, options) => searchModrinth(options));
 ipcMain.handle('modrinth:install', (_, options) => installModrinth(options));
+ipcMain.handle('mods:list', (_, options) => listInstalledMods(options));
+ipcMain.handle('mods:toggle', (_, options) => toggleInstalledMod(options));
+ipcMain.handle('mods:delete', (_, options) => deleteInstalledMod(options));
+ipcMain.handle('mods:open-folder', (_, options) => openModsFolder(options));
 ipcMain.handle('dialog:pick-file', async (_, options) => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openFile'],

@@ -297,6 +297,36 @@ button:disabled {
   gap: 14px;
 }
 
+.deck-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(6, 10, 22, 0.72);
+}
+
+.deck-tab {
+  min-height: 42px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 950;
+}
+
+.deck-tab.active {
+  border-color: rgba(94, 231, 240, 0.25);
+  background: linear-gradient(135deg, rgba(49, 101, 255, 0.98), rgba(113, 137, 255, 0.84));
+  color: white;
+  box-shadow: 0 12px 28px rgba(49, 101, 255, 0.3);
+}
+
+.view-stack,
+.mods-view {
+  display: grid;
+  gap: 18px;
+}
+
 h2 {
   margin-bottom: 0;
   font-size: 30px;
@@ -331,7 +361,7 @@ h2 {
 
 .modrinth-controls {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 108px 86px;
+  grid-template-columns: minmax(0, 1fr) 104px 82px;
   gap: 8px;
 }
 
@@ -357,6 +387,104 @@ h2 {
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.22);
+}
+
+.installed-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(10, 14, 30, 0.62);
+}
+
+.folder-button {
+  justify-self: end;
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.installed-list {
+  display: grid;
+  gap: 8px;
+  max-height: 330px;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.installed-mod {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 54px 34px;
+  gap: 10px;
+  align-items: center;
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.mod-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, rgba(121, 229, 111, 0.28), rgba(94, 231, 240, 0.14));
+  color: var(--lime);
+  font-weight: 950;
+}
+
+.installed-mod strong,
+.installed-mod span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.installed-mod strong {
+  font-size: 14px;
+}
+
+.installed-mod span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.toggle-mod {
+  position: relative;
+  width: 48px;
+  min-height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.toggle-mod::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 160ms ease;
+}
+
+.toggle-mod[data-enabled="true"] {
+  background: #4a78ff;
+}
+
+.toggle-mod[data-enabled="true"]::after {
+  transform: translateX(20px);
+}
+
+.delete-mod {
+  width: 34px;
+  min-height: 34px;
+  border: 1px solid rgba(255, 103, 103, 0.24);
+  background: rgba(255, 103, 103, 0.08);
+  color: var(--red);
 }
 
 .mod-card img {

@@ -27,6 +27,14 @@ const modrinthQuery = document.querySelector('#modrinthQuery');
 const modrinthLoader = document.querySelector('#modrinthLoader');
 const modrinthSearch = document.querySelector('#modrinthSearch');
 const modrinthResults = document.querySelector('#modrinthResults');
+const tabPlay = document.querySelector('#tabPlay');
+const tabMods = document.querySelector('#tabMods');
+const tabSettings = document.querySelector('#tabSettings');
+const playSettingsView = document.querySelector('#playSettingsView');
+const modsView = document.querySelector('#modsView');
+const installedMods = document.querySelector('#installedMods');
+const installedCount = document.querySelector('#installedCount');
+const openModsFolder = document.querySelector('#openModsFolder');
 
 let authMode = 'offline';
 let microsoftLinked = false;
@@ -70,6 +78,10 @@ const api = window.kolbasz ?? {
   loginMicrosoft: async () => ({ ok: false, message: 'Preview mod. Microsoft login csak az .exe appban aktiv.' }),
   searchModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktiv.' }),
   installModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktiv.' }),
+  listMods: async () => ({ ok: true, mods: [], message: 'Preview mod.' }),
+  toggleMod: async () => ({ ok: false, message: 'Preview mod.' }),
+  deleteMod: async () => ({ ok: false, message: 'Preview mod.' }),
+  openModsFolder: async () => ({ ok: false, message: 'Preview mod.' }),
   checkUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
   installUpdate: async () => ({ ok: false, message: 'Preview mod. Update csak az .exe appban aktiv.' }),
   onLaunchStatus: () => {},
@@ -144,6 +156,42 @@ function renderModrinthResults(hits = []) {
   `).join('');
 }
 
+function setDeckTab(tab) {
+  const modsActive = tab === 'mods';
+  tabPlay.classList.toggle('active', tab === 'play');
+  tabMods.classList.toggle('active', modsActive);
+  tabSettings.classList.toggle('active', tab === 'settings');
+  playSettingsView.hidden = modsActive;
+  modsView.hidden = !modsActive;
+  if (modsActive) refreshInstalledMods();
+}
+
+function renderInstalledMods(mods = []) {
+  installedCount.textContent = String(mods.length);
+  if (!mods.length) {
+    installedMods.innerHTML = '<div class="modrinth-empty">Meg nincs telepitett mod.</div>';
+    return;
+  }
+
+  installedMods.innerHTML = mods.map((mod) => `
+    <article class="installed-mod">
+      <div class="mod-icon">M</div>
+      <div>
+        <strong>${escapeHtml(mod.name)}</strong>
+        <span>${mod.enabled ? 'Enabled' : 'Disabled'} - ${escapeHtml(mod.sizeMb)} MB</span>
+      </div>
+      <button class="toggle-mod" data-enabled="${mod.enabled}" data-file-name="${escapeHtml(mod.fileName)}" type="button" title="Mod ki/be"></button>
+      <button class="delete-mod" data-file-name="${escapeHtml(mod.fileName)}" type="button" title="Mod torlese">x</button>
+    </article>
+  `).join('');
+}
+
+async function refreshInstalledMods() {
+  const result = await api.listMods(readForm());
+  if (result.ok) renderInstalledMods(result.mods);
+  else installedMods.innerHTML = `<div class="modrinth-empty">${escapeHtml(result.message)}</div>`;
+}
+
 async function saveSettings() {
   const saved = await api.saveSettings(readForm());
   hydrate(saved);
@@ -179,6 +227,9 @@ async function boot() {
 }
 
 document.querySelector('#saveSettings').addEventListener('click', saveSettings);
+tabPlay.addEventListener('click', () => setDeckTab('play'));
+tabMods.addEventListener('click', () => setDeckTab('mods'));
+tabSettings.addEventListener('click', () => setDeckTab('settings'));
 fields.memoryGb.addEventListener('input', syncHeroStats);
 fields.version.addEventListener('change', syncHeroStats);
 offlineMode.addEventListener('click', async () => {
@@ -281,7 +332,27 @@ modrinthResults.addEventListener('click', async (event) => {
     gameDir: fields.gameDir.value.trim()
   });
   setMessage(result.message, result.ok);
+  if (result.ok) await refreshInstalledMods();
   button.disabled = false;
+});
+
+installedMods.addEventListener('click', async (event) => {
+  const toggle = event.target.closest('.toggle-mod');
+  const remove = event.target.closest('.delete-mod');
+  const target = toggle || remove;
+  if (!target) return;
+
+  target.disabled = true;
+  const payload = { ...readForm(), fileName: target.dataset.fileName };
+  const result = toggle ? await api.toggleMod(payload) : await api.deleteMod(payload);
+  setMessage(result.message, result.ok);
+  if (result.list?.mods) renderInstalledMods(result.list.mods);
+  else await refreshInstalledMods();
+});
+
+openModsFolder.addEventListener('click', async () => {
+  const result = await api.openModsFolder(readForm());
+  setMessage(result.message, result.ok);
 });
 
 document.querySelector('#pickJava').addEventListener('click', async () => {
