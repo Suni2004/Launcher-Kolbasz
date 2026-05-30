@@ -1,0 +1,85 @@
+{
+  "name": "kolbasz-launcher",
+  "version": "1.0.0",
+  "description": "Kolbasz Launcher - a polished Windows desktop launcher for Minecraft.",
+  "main": "src/main.js",
+  "author": "Kolbasz Launcher",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "npm run dist:win",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac dmg zip"
+  },
+  "build": {
+    "appId": "hu.kolbasz.launcher",
+    "productName": "Kolbasz Launcher",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "dmg": {
+      "artifactName": "Kolbasz Launcher-${version}-mac.${ext}",
+      "backgroundColor": "#05070a",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 130,
+          "y": 190,
+          "type": "file"
+        },
+        {
+          "x": 410,
+          "y": 190,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "Kolbasz Launcher Setup.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Kolbasz Launcher",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installer-sidebar.bmp",
+      "uninstallerSidebar": "build/installer-sidebar.bmp"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "minecraft-launcher-core": "^3.18.2",
+    "msmc": "^5.0.5"
+  }
+}

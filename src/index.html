@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="hu">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kolbasz Launcher</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="topbar">
+          <div class="brand">
+            <div class="brand-mark">K</div>
+            <div>
+              <span>Kolbasz</span>
+              <strong>Launcher</strong>
+            </div>
+          </div>
+          <div class="status-pill" id="launcherStatus">Ellenorzes...</div>
+        </div>
+
+        <div class="hero-content">
+          <div class="version-chip">
+            <span>Release</span>
+            <strong id="heroVersion">1.21.10</strong>
+          </div>
+          <p class="eyebrow">Java Edition control deck</p>
+          <h1>Uj vilag. Egy kattintas.</h1>
+          <p class="lead">Gyors vanilla inditas, tiszta verziovalaszto es finomhangolt RAM kezeles egy modern desktop launcherben.</p>
+          <div class="quick-actions">
+            <button class="primary" id="playOfficial"><span>Play</span></button>
+            <button class="secondary" id="launchJar"><span>Custom Jar</span></button>
+            <button class="secondary update-action" id="updateLauncher"><span>Update</span></button>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <div>
+            <span>Verziok</span>
+            <strong>69</strong>
+          </div>
+          <div>
+            <span>Inditas</span>
+            <strong>Java</strong>
+          </div>
+          <div>
+            <span>Memoria</span>
+            <strong id="heroMemory">4 GB</strong>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Launch deck</p>
+            <h2>Beallitasok</h2>
+          </div>
+          <button class="ghost" id="saveSettings">Mentes</button>
+        </div>
+
+        <section class="character-card">
+          <div class="section-title">
+            <p class="eyebrow">Karakter</p>
+            <strong id="characterSummary">Tort karakter</strong>
+          </div>
+          <div class="auth-switch" role="group" aria-label="Karakter mod">
+            <button class="auth-option active" id="offlineMode" type="button">Tort</button>
+            <button class="auth-option" id="microsoftMode" type="button">Eredeti</button>
+          </div>
+        </section>
+
+        <div class="identity-strip" id="offlineFields">
+          <div class="avatar">K</div>
+          <label>
+            Jatekosnev
+            <input id="playerName" maxlength="24" spellcheck="false" />
+          </label>
+        </div>
+
+        <div class="identity-strip microsoft-strip" id="microsoftFields">
+          <div class="avatar">M</div>
+          <div class="account-box">
+            <span>Microsoft fiok</span>
+            <strong id="microsoftName">Nincs bejelentkezve</strong>
+            <button class="account-button" id="microsoftLogin" type="button">Bejelentkezes</button>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+          <div class="mini-tile">
+            <span>Motor</span>
+            <strong>Java</strong>
+          </div>
+          <div class="mini-tile">
+            <span>Statusz</span>
+            <strong>Ready</strong>
+          </div>
+        </div>
+
+        <label>
+          Verzio
+          <select id="version"></select>
+        </label>
+
+        <div class="memory-card">
+          <div class="memory-row">
+            <label for="memoryGb">RAM limit</label>
+            <output id="memoryValue">4 GB</output>
+          </div>
+          <input id="memoryGb" type="range" min="1" max="16" step="1" />
+        </div>
+
+        <div class="path-stack">
+          <div class="path-field">
+            <label>
+              Java exe
+              <input id="javaPath" spellcheck="false" placeholder="C:\Program Files\Java\...\javaw.exe" />
+            </label>
+            <button class="icon-button" id="pickJava" title="Java kivalasztasa">...</button>
+          </div>
+
+          <div class="path-field">
+            <label>
+              Custom .jar
+              <input id="jarPath" spellcheck="false" placeholder="launcher.jar vagy modpack.jar" />
+            </label>
+            <button class="icon-button" id="pickJar" title="Jar kivalasztasa">...</button>
+          </div>
+
+          <div class="path-field">
+            <label>
+              Game mappa
+              <input id="gameDir" spellcheck="false" placeholder="%APPDATA%\.minecraft" />
+            </label>
+            <button class="icon-button" id="pickFolder" title="Mappa kivalasztasa">...</button>
+          </div>
+        </div>
+
+        <div class="news">
+          <div class="pulse"></div>
+          <div>
+            <h3>Gyors info</h3>
+            <p id="message">Valassz verziot, allits RAM-ot, aztan indulhat a Minecraft.</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
