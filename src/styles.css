@@ -190,9 +190,9 @@ label,
 .minecraft-avatar {
   position: absolute;
   left: 50%;
-  bottom: 54px;
-  width: 96px;
-  height: 188px;
+  bottom: 50px;
+  width: 150px;
+  height: 236px;
   transform: translateX(-50%);
   animation: character-bob 2200ms ease-in-out infinite;
 }
@@ -208,82 +208,13 @@ label,
   filter: blur(4px);
 }
 
-.mc-head {
+.minecraft-avatar img {
   position: absolute;
-  left: 20px;
-  top: 0;
-  width: 56px;
-  height: 56px;
-  border: 3px solid rgba(0, 0, 0, 0.42);
-  background: #caa07a;
-  image-rendering: pixelated;
-  overflow: hidden;
-}
-
-.mc-head img {
+  inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: contain;
   image-rendering: pixelated;
-}
-
-.mc-body,
-.mc-arm,
-.mc-leg {
-  position: absolute;
-  border: 3px solid rgba(0, 0, 0, 0.36);
-  image-rendering: pixelated;
-}
-
-.mc-body {
-  left: 25px;
-  top: 58px;
-  width: 46px;
-  height: 72px;
-  background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent 38%),
-    #2c8f8c;
-}
-
-.mc-arm {
-  top: 62px;
-  width: 22px;
-  height: 74px;
-  background: #b98563;
-  transform-origin: 50% 10%;
-}
-
-.mc-arm-left {
-  left: 2px;
-  transform: rotate(8deg);
-}
-
-.mc-arm-right {
-  right: 2px;
-  animation: wave-arm 900ms ease-in-out infinite alternate;
-}
-
-.mc-leg {
-  top: 128px;
-  width: 22px;
-  height: 58px;
-  background: #3550a6;
-}
-
-.mc-leg-left {
-  left: 26px;
-}
-
-.mc-leg-right {
-  right: 26px;
-}
-
-@keyframes wave-arm {
-  from {
-    transform: rotate(-132deg) translateY(1px);
-  }
-  to {
-    transform: rotate(-72deg) translateY(-4px);
-  }
 }
 
 @keyframes character-bob {

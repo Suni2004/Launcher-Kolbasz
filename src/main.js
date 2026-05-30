@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   microsoftName: '',
   microsoftRefreshToken: '',
   version: '1.21.10',
+  modLoader: 'fabric',
   memoryGb: 4,
   javaPath: '',
   jarPath: '',
@@ -142,6 +143,66 @@ function modrinthJson(pathname, params = {}) {
     }
   });
   return fetchJson(url.toString());
+}
+
+function mavenArtifactPath(name) {
+  const parts = String(name).split(':');
+  if (parts.length < 3) throw new Error(`Hibas Maven artifact: ${name}`);
+  const [group, artifact, version] = parts;
+  return `${group.replace(/\./g, '/')}/${artifact}/${version}/${artifact}-${version}.jar`;
+}
+
+async function ensureFabricProfile(gameDir, minecraftVersion) {
+  const loaders = await fetchJson(`https://meta.fabricmc.net/v2/versions/loader/${encodeURIComponent(minecraftVersion)}`);
+  const fabric = loaders.find((item) => item.loader?.stable) || loaders[0];
+  if (!fabric?.loader?.version) throw new Error(`Ehhez a verziohoz nincs Fabric loader: ${minecraftVersion}`);
+
+  const versionId = `fabric-loader-${fabric.loader.version}-${minecraftVersion}`;
+  const versionDir = path.join(gameDir, 'versions', versionId);
+  const versionJson = path.join(versionDir, `${versionId}.json`);
+  fs.mkdirSync(versionDir, { recursive: true });
+
+  const meta = fabric.launcherMeta || {};
+  const libraries = [
+    ...(meta.libraries?.common || []),
+    ...(meta.libraries?.client || []),
+    {
+      name: fabric.loader.maven,
+      url: 'https://maven.fabricmc.net/'
+    },
+    {
+      name: fabric.intermediary.maven,
+      url: 'https://maven.fabricmc.net/'
+    }
+  ].map((library) => ({
+    ...library,
+    url: library.url || 'https://libraries.minecraft.net/'
+  }));
+
+  fs.writeFileSync(versionJson, JSON.stringify({
+    id: versionId,
+    inheritsFrom: minecraftVersion,
+    releaseTime: new Date().toISOString(),
+    time: new Date().toISOString(),
+    type: 'release',
+    mainClass: typeof meta.mainClass === 'object' ? meta.mainClass.client : meta.mainClass,
+    libraries,
+    arguments: meta.arguments || {
+      game: [],
+      jvm: []
+    }
+  }, null, 2));
+
+  for (const library of libraries) {
+    if (!library.url || !library.name) continue;
+    const libraryPath = mavenArtifactPath(library.name);
+    const destination = path.join(gameDir, 'libraries', libraryPath);
+    if (!fs.existsSync(destination)) {
+      await downloadFile(new URL(libraryPath, library.url).toString(), destination);
+    }
+  }
+
+  return versionId;
 }
 
 function downloadFile(url, destination) {
@@ -615,6 +676,7 @@ function cleanVersionCache(gameDir, version) {
 async function launchMinecraft(settings) {
   const version = settings.version || DEFAULT_SETTINGS.version;
   const gameDir = settings.gameDir && fs.existsSync(settings.gameDir) ? settings.gameDir : defaultGameDir();
+  const modLoader = settings.modLoader || DEFAULT_SETTINGS.modLoader;
   const requiredJava = requiredJavaMajor(version);
   const savedJavaPath = settings.javaPath && fs.existsSync(settings.javaPath) ? settings.javaPath : '';
   const savedJavaMajor = savedJavaPath ? getJavaMajor(savedJavaPath) : 0;
@@ -622,9 +684,23 @@ async function launchMinecraft(settings) {
   const memory = Math.max(1, Number(settings.memoryGb) || DEFAULT_SETTINGS.memoryGb);
   const launcher = new Client();
 
-  cleanVersionCache(gameDir, version);
+  const enabledMods = listInstalledMods({ gameDir }).mods.filter((mod) => mod.enabled);
+  let launchVersion = version;
+  if (enabledMods.length && modLoader !== 'fabric') {
+    return {
+      ok: false,
+      message: `Modok vannak telepitve, de automata modded inditas jelenleg Fabric-kel mukodik. A Mods fulon valts Fabric loaderre.`
+    };
+  }
+
+  if (enabledMods.length && modLoader === 'fabric') {
+    sendLaunchStatus(`Fabric loader elokeszitese ${version} verziohoz...`);
+    launchVersion = await ensureFabricProfile(gameDir, version);
+  }
+
+  cleanVersionCache(gameDir, launchVersion);
   setDiscordActivity('Kolbász Launcher', `Minecraft ${version} indítása`);
-  sendLaunchStatus(`Minecraft ${version} inditas elokeszitese...`);
+  sendLaunchStatus(`Minecraft ${launchVersion} inditas elokeszitese...`);
   sendLaunchStatus(`Game mappa: ${gameDir}`);
   if (savedJavaPath && savedJavaMajor < requiredJava) {
     sendLaunchStatus(`A mentett Java ${savedJavaMajor} tul regi ehhez: Java ${requiredJava} kell. Automatikus Java kereses...`, false);
@@ -657,7 +733,7 @@ async function launchMinecraft(settings) {
     authorization,
     root: gameDir,
     version: {
-      number: version,
+      number: launchVersion,
       type: 'release'
     },
     memory: {

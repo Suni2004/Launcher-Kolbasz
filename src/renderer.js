@@ -35,7 +35,7 @@ const modsView = document.querySelector('#modsView');
 const installedMods = document.querySelector('#installedMods');
 const installedCount = document.querySelector('#installedCount');
 const openModsFolder = document.querySelector('#openModsFolder');
-const heroCharacterHead = document.querySelector('#heroCharacterHead');
+const heroCharacterRender = document.querySelector('#heroCharacterRender');
 
 let authMode = 'offline';
 let microsoftLinked = false;
@@ -64,6 +64,7 @@ const api = window.kolbasz ?? {
     microsoftName: '',
     microsoftLinked: false,
     version: '1.21.10',
+    modLoader: 'fabric',
     memoryGb: 4,
     javaPath: '',
     jarPath: '',
@@ -101,6 +102,7 @@ function readForm() {
     authMode,
     playerName: fields.playerName.value.trim(),
     version: fields.version.value.trim(),
+    modLoader: modrinthLoader.value,
     memoryGb: Number(fields.memoryGb.value),
     javaPath: fields.javaPath.value.trim(),
     jarPath: fields.jarPath.value.trim(),
@@ -128,10 +130,10 @@ function characterNameForPreview() {
 
 function syncHeroCharacter() {
   const characterName = encodeURIComponent(characterNameForPreview());
-  heroCharacterHead.src = `https://minotar.net/avatar/${characterName}/96.png`;
-  heroCharacterHead.onerror = () => {
-    heroCharacterHead.onerror = null;
-    heroCharacterHead.src = 'https://minotar.net/avatar/Steve/96.png';
+  heroCharacterRender.src = `https://render.crafty.gg/3d/full/${characterName}?shadow=false&height=260`;
+  heroCharacterRender.onerror = () => {
+    heroCharacterRender.onerror = null;
+    heroCharacterRender.src = 'https://render.crafty.gg/3d/full/MHF_Steve?shadow=false&height=260';
   };
 }
 
@@ -224,6 +226,7 @@ function hydrate(settings) {
   fields.javaPath.value = settings.javaPath ?? '';
   fields.jarPath.value = settings.jarPath ?? '';
   fields.gameDir.value = settings.gameDir ?? '';
+  modrinthLoader.value = settings.modLoader || modrinthLoader.value || 'fabric';
   microsoftLinked = Boolean(settings.microsoftLinked);
   microsoftName.textContent = settings.microsoftName || (microsoftLinked ? 'Csatlakoztatva' : 'Nincs bejelentkezve');
   microsoftLogin.textContent = microsoftLinked ? 'Fiok valtasa' : 'Bejelentkezes';
