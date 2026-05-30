@@ -9,8 +9,9 @@ const { Auth, lexicon } = require('msmc');
 const DiscordRPC = require('discord-rpc');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
-const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.12 (github.com/Suni2004/Launcher-Kolbasz)';
+const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.14 (github.com/Suni2004/Launcher-Kolbasz)';
 const LAUNCHER_BRAND = 'Kolb\u00e1szLauncher';
+const LOADING_PACK_NAME = 'KolbaszLauncherLoading';
 
 const DEFAULT_SETTINGS = {
   authMode: 'offline',
@@ -83,6 +84,15 @@ function readUpdateSource() {
 
 function readDiscordPresenceConfig() {
   return readJsonAsset('discord-presence.json');
+}
+
+function assetPath(fileName) {
+  const candidates = [
+    path.join(process.resourcesPath || '', 'assets', fileName),
+    path.join(__dirname, '..', 'assets', fileName)
+  ];
+
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || '';
 }
 
 function setDiscordActivity(details = 'Kolbász Launcher', state = 'Launcher nyitva') {
@@ -946,6 +956,85 @@ function cleanVersionCache(gameDir, version) {
   candidates.forEach(deleteIfInvalidJson);
 }
 
+function packFormatFor(version) {
+  const [major, minor = 0, patch = 0] = String(version).split('.').map((part) => Number(part) || 0);
+  if (major !== 1) return 63;
+  if (minor <= 8) return 1;
+  if (minor <= 10) return 2;
+  if (minor <= 12) return 3;
+  if (minor <= 14) return 4;
+  if (minor === 15 || (minor === 16 && patch <= 1)) return 5;
+  if (minor === 16) return 6;
+  if (minor === 17) return 7;
+  if (minor === 18) return 8;
+  if (minor === 19 && patch <= 2) return 9;
+  if (minor === 19 && patch === 3) return 12;
+  if (minor === 19) return 13;
+  if (minor === 20 && patch <= 1) return 15;
+  if (minor === 20 && patch === 2) return 18;
+  if (minor === 20 && patch <= 4) return 22;
+  if (minor === 20) return 32;
+  if (minor === 21 && patch <= 1) return 34;
+  if (minor === 21 && patch <= 3) return 42;
+  if (minor === 21 && patch === 4) return 46;
+  if (minor === 21 && patch === 5) return 55;
+  return 63;
+}
+
+function upsertOptionLine(lines, key, value) {
+  const prefix = `${key}:`;
+  const index = lines.findIndex((line) => line.startsWith(prefix));
+  const next = `${prefix}${value}`;
+  if (index >= 0) lines[index] = next;
+  else lines.push(next);
+}
+
+function enableLoadingScreenPack(gameDir, version) {
+  const logoSource = assetPath('kolbasz-loading-logo.png');
+  if (!logoSource) {
+    sendLaunchStatus('Kolbász Launcher betöltőlogó nem található.', false);
+    return;
+  }
+
+  const packDir = path.join(gameDir, 'resourcepacks', LOADING_PACK_NAME);
+  const textureDir = path.join(packDir, 'assets', 'minecraft', 'textures', 'gui', 'title');
+  fs.mkdirSync(textureDir, { recursive: true });
+  fs.copyFileSync(logoSource, path.join(textureDir, 'mojangstudios.png'));
+  fs.writeFileSync(path.join(packDir, 'pack.mcmeta'), JSON.stringify({
+    pack: {
+      pack_format: packFormatFor(version),
+      supported_formats: {
+        min_inclusive: 1,
+        max_inclusive: 999
+      },
+      description: 'Kolbász Launcher betöltőképernyő'
+    }
+  }, null, 2));
+
+  const optionsPath = path.join(gameDir, 'options.txt');
+  const lines = fs.existsSync(optionsPath)
+    ? fs.readFileSync(optionsPath, 'utf8').split(/\r?\n/).filter(Boolean)
+    : [];
+  const packEntry = `file/${LOADING_PACK_NAME}`;
+  const resourceLine = lines.find((line) => line.startsWith('resourcePacks:'));
+  let packs = ['vanilla'];
+
+  if (resourceLine) {
+    try {
+      const parsed = JSON.parse(resourceLine.slice('resourcePacks:'.length));
+      if (Array.isArray(parsed)) packs = parsed;
+    } catch {
+      packs = ['vanilla'];
+    }
+  }
+
+  packs = packs.filter((pack) => pack !== packEntry);
+  packs.push(packEntry);
+  upsertOptionLine(lines, 'resourcePacks', JSON.stringify(packs));
+  fs.writeFileSync(optionsPath, `${lines.join('\n')}\n`, 'utf8');
+  sendLaunchStatus('Kolbász Launcher betöltőképernyő bekapcsolva.');
+}
+
 async function launchMinecraft(settings) {
   const version = settings.version || DEFAULT_SETTINGS.version;
   const gameDir = settings.gameDir && fs.existsSync(settings.gameDir) ? settings.gameDir : defaultGameDir();
@@ -972,6 +1061,7 @@ async function launchMinecraft(settings) {
   }
 
   cleanVersionCache(gameDir, launchVersion);
+  enableLoadingScreenPack(gameDir, version);
   setDiscordActivity('Kolbász Launcher', `Minecraft ${version} indítása`);
   sendLaunchStatus(`${LAUNCHER_BRAND} betöltése...`);
   sendLaunchStatus(`Minecraft ${launchVersion} indítás előkészítése...`);
