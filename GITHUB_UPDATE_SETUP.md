@@ -28,7 +28,7 @@ A `FELHASZNALONEV` reszt csereld ki a sajat GitHub nevedre.
 2. Draft a new release
 3. Tag: `v1.0.0`
 4. Title: `Kolbasz Launcher 1.0.0`
-5. Upload asset: `dist/Kolbasz Launcher Setup.exe`
+5. Upload asset: `dist/Kolbasz.Launcher.Setup.exe`
 6. Publish release
 
 ## 4. Update manifest link beallitasa
@@ -54,7 +54,7 @@ npm run dist:win
 
 3. GitHubon hozz letre uj release-t:
    - Tag: `v1.0.1`
-   - Asset: `dist/Kolbasz Launcher Setup.exe`
+   - Asset: `dist/Kolbasz.Launcher.Setup.exe`
 
 4. Ird at az `updates/latest.json` fajlt:
 

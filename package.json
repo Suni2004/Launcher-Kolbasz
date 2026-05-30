@@ -60,7 +60,7 @@
       ]
     },
     "nsis": {
-      "artifactName": "Kolbasz Launcher Setup.exe",
+      "artifactName": "Kolbasz.Launcher.Setup.exe",
       "oneClick": false,
       "perMachine": false,
       "allowElevation": true,
