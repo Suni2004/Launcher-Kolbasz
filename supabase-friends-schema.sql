@@ -3,9 +3,20 @@ create table if not exists launcher_profiles (
   name text not null unique,
   auth_mode text not null default 'offline',
   status text not null default 'online',
+  activity_status text not null default 'menu',
+  activity_detail text not null default 'Menüben van',
+  activity_version text,
+  activity_loader text,
   last_seen timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   created_at timestamptz not null default now()
 );
+
+alter table launcher_profiles add column if not exists activity_status text not null default 'menu';
+alter table launcher_profiles add column if not exists activity_detail text not null default 'Menüben van';
+alter table launcher_profiles add column if not exists activity_version text;
+alter table launcher_profiles add column if not exists activity_loader text;
+alter table launcher_profiles add column if not exists updated_at timestamptz not null default now();
 
 create table if not exists launcher_friend_requests (
   id uuid primary key default gen_random_uuid(),

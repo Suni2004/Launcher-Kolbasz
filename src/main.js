@@ -9,7 +9,7 @@ const { Auth, lexicon } = require('msmc');
 const DiscordRPC = require('discord-rpc');
 
 const MODRINTH_API = 'https://api.modrinth.com/v2';
-const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.14 (github.com/Suni2004/Launcher-Kolbasz)';
+const MODRINTH_USER_AGENT = 'KolbaszLauncher/1.0.15 (github.com/Suni2004/Launcher-Kolbasz)';
 const LAUNCHER_BRAND = 'Kolb\u00e1szLauncher';
 const LOADING_PACK_NAME = 'KolbaszLauncherLoading';
 
@@ -23,7 +23,8 @@ const DEFAULT_SETTINGS = {
   memoryGb: 4,
   javaPath: '',
   jarPath: '',
-  gameDir: ''
+  gameDir: '',
+  serverAddress: 'mc.hypixel.net'
 };
 
 let mainWindow;
@@ -204,6 +205,31 @@ function supabaseRequest(method, table, query = '', body) {
   });
 }
 
+async function fetchServerStatus(address) {
+  const cleanAddress = String(address || DEFAULT_SETTINGS.serverAddress).trim();
+  if (!cleanAddress) return { ok: false, message: 'Adj meg egy szerver címet.' };
+
+  const started = Date.now();
+  try {
+    const data = await fetchJson(`https://api.mcsrvstat.us/3/${encodeURIComponent(cleanAddress)}`);
+    const ping = Date.now() - started;
+    const online = Boolean(data.online);
+    return {
+      ok: true,
+      address: cleanAddress,
+      online,
+      players: online ? `${data.players?.online ?? 0}/${data.players?.max ?? '?'}` : '-',
+      ping,
+      version: data.version || data.protocol?.name || '-',
+      message: online
+        ? `${cleanAddress} online, ${data.players?.online ?? 0}/${data.players?.max ?? '?'} játékos.`
+        : `${cleanAddress} offline vagy nem válaszol.`
+    };
+  } catch (error) {
+    return { ok: false, message: `Szerver státusz hiba: ${error.message}` };
+  }
+}
+
 function friendIdentity(settings = readSettings()) {
   const mode = settings.authMode === 'microsoft' ? 'microsoft' : 'offline';
   const rawName = mode === 'microsoft'
@@ -219,16 +245,64 @@ function friendIdentity(settings = readSettings()) {
 
 async function ensureFriendProfile(settings = readSettings()) {
   const identity = friendIdentity(settings);
+  const now = new Date().toISOString();
   const body = {
     id: identity.id,
     name: identity.name,
     auth_mode: identity.authMode,
     status: 'online',
-    last_seen: new Date().toISOString()
+    activity_status: settings.activityStatus || 'menu',
+    activity_detail: settings.activityDetail || 'Menüben van',
+    activity_version: settings.version || DEFAULT_SETTINGS.version,
+    activity_loader: settings.modLoader || DEFAULT_SETTINGS.modLoader,
+    last_seen: now,
+    updated_at: now
   };
   const result = await supabaseRequest('POST', 'launcher_profiles', '?on_conflict=id', body);
+  if (!result.ok && /activity_|updated_at|schema cache/i.test(result.message || '')) {
+    const fallback = {
+      id: identity.id,
+      name: identity.name,
+      auth_mode: identity.authMode,
+      status: 'online',
+      last_seen: now
+    };
+    const fallbackResult = await supabaseRequest('POST', 'launcher_profiles', '?on_conflict=id', fallback);
+    if (fallbackResult.ok) return { ok: true, profile: identity };
+  }
   if (!result.ok) return { ok: false, message: `Barát profil hiba: ${result.message}` };
   return { ok: true, profile: identity };
+}
+
+async function updateFriendActivity(settings = readSettings(), activityStatus = 'menu', activityDetail = 'Menüben van') {
+  return ensureFriendProfile({
+    ...settings,
+    activityStatus,
+    activityDetail
+  });
+}
+
+function friendActivityText(friend) {
+  const lastSeen = friend.last_seen ? Date.parse(friend.last_seen) : 0;
+  if (!lastSeen || Date.now() - lastSeen > 90_000) return 'Offline';
+  if (friend.activity_status === 'minecraft') {
+    const version = friend.activity_version || DEFAULT_SETTINGS.version;
+    const loader = friend.activity_loader || DEFAULT_SETTINGS.modLoader;
+    return `${version} ${loader}`;
+  }
+  if (friend.activity_status === 'launcher') return 'Launcherben';
+  return friend.activity_detail || 'Menüben van';
+}
+
+async function enrichFriendsWithActivity(friends = []) {
+  return Promise.all(friends.map(async (friend) => {
+    const result = await supabaseRequest('GET', 'launcher_profiles', `?select=*&id=eq.${encodeURIComponent(friend.friend_id)}&limit=1`);
+    const profile = result.ok ? result.data?.[0] : null;
+    return {
+      ...friend,
+      activity: friendActivityText(profile || friend)
+    };
+  }));
 }
 
 async function findFriendProfileByName(name) {
@@ -261,7 +335,7 @@ async function getFriendsState(settings = readSettings()) {
   return {
     ok: true,
     profile,
-    friends: friends.data || [],
+    friends: await enrichFriendsWithActivity(friends.data || []),
     incoming: [...incomingMap.values()],
     outgoing: outgoing.data || []
   };
@@ -527,10 +601,12 @@ async function checkForUpdate() {
       return { ok: false, message: 'Az update manifesthez version és url mezők kellenek.' };
     }
     const hasUpdate = compareVersions(manifest.version, appVersion()) > 0;
+    const changelog = Array.isArray(manifest.changelog) ? manifest.changelog : [];
     return {
       ok: true,
       hasUpdate,
       manifest,
+      changelog,
       currentVersion: appVersion(),
       latestVersion: manifest.version,
       message: hasUpdate
@@ -1062,6 +1138,11 @@ async function launchMinecraft(settings) {
 
   cleanVersionCache(gameDir, launchVersion);
   enableLoadingScreenPack(gameDir, version);
+  updateFriendActivity({
+    ...settings,
+    version,
+    modLoader
+  }, 'minecraft', `Minecraftozik - ${version} ${modLoader}`).catch(() => {});
   setDiscordActivity('Kolbász Launcher', `Minecraft ${version} indítása`);
   sendLaunchStatus(`${LAUNCHER_BRAND} betöltése...`);
   sendLaunchStatus(`Minecraft ${launchVersion} indítás előkészítése...`);
@@ -1166,6 +1247,7 @@ async function launchMinecraft(settings) {
 
       if (reportedRunning) {
         sendLaunchStatus(`Minecraft bezárva. Kód: ${code ?? 'ismeretlen'}`);
+        updateFriendActivity(readSettings(), 'menu', 'Menüben van').catch(() => {});
       }
     });
 
@@ -1253,6 +1335,10 @@ function createWindow() {
 
 app.whenReady().then(createWindow);
 
+app.on('before-quit', () => {
+  updateFriendActivity(readSettings(), 'offline', 'Offline').catch(() => {});
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
@@ -1266,6 +1352,7 @@ ipcMain.handle('settings:save', (_, settings) => publicSettings(writeSettings(se
 ipcMain.handle('launcher:detect', () => findMinecraftLauncher());
 ipcMain.handle('launcher:open-official', (_, settings) => launchMinecraft(settings));
 ipcMain.handle('launcher:launch-jar', (_, settings) => launchJar(settings));
+ipcMain.handle('server:status', (_, address) => fetchServerStatus(address));
 ipcMain.handle('auth:microsoft-login', (_, options) => loginMicrosoftAccount(Boolean(options?.force)));
 ipcMain.handle('modrinth:search', (_, options) => searchModrinth(options));
 ipcMain.handle('modrinth:install', (_, options) => installModrinth(options));

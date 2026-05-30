@@ -5,7 +5,8 @@ const fields = {
   memoryGb: document.querySelector('#memoryGb'),
   javaPath: document.querySelector('#javaPath'),
   jarPath: document.querySelector('#jarPath'),
-  gameDir: document.querySelector('#gameDir')
+  gameDir: document.querySelector('#gameDir'),
+  serverAddress: document.querySelector('#serverAddress')
 };
 
 const message = document.querySelector('#message');
@@ -50,6 +51,12 @@ const chatTitle = document.querySelector('#chatTitle');
 const chatMessages = document.querySelector('#chatMessages');
 const chatInput = document.querySelector('#chatInput');
 const sendChatButton = document.querySelector('#sendChatButton');
+const refreshServerStatus = document.querySelector('#refreshServerStatus');
+const serverStatusBadge = document.querySelector('#serverStatusBadge');
+const serverOnline = document.querySelector('#serverOnline');
+const serverPlayers = document.querySelector('#serverPlayers');
+const serverPing = document.querySelector('#serverPing');
+const serverVersion = document.querySelector('#serverVersion');
 
 let authMode = 'offline';
 let microsoftLinked = false;
@@ -84,7 +91,8 @@ const api = window.kolbasz ?? {
     memoryGb: 4,
     javaPath: '',
     jarPath: '',
-    gameDir: ''
+    gameDir: '',
+    serverAddress: 'mc.hypixel.net'
   }),
   saveSettings: async (settings) => settings,
   detectLauncher: async () => '',
@@ -93,6 +101,7 @@ const api = window.kolbasz ?? {
     message: `Preview mod. Az exe-ben a Minecraft ${settings.version} indul közvetlenül.`
   }),
   launchJar: async () => ({ ok: false, message: 'Preview mod. Custom Jar indítás az .exe appban aktív.' }),
+  serverStatus: async () => ({ ok: false, message: 'Preview mod. Szerver státusz csak az .exe appban aktív.' }),
   loginMicrosoft: async () => ({ ok: false, message: 'Preview mod. Microsoft login csak az .exe appban aktív.' }),
   searchModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktív.' }),
   installModrinth: async () => ({ ok: false, message: 'Preview mod. Modrinth csak az .exe appban aktív.' }),
@@ -129,7 +138,8 @@ function readForm() {
     memoryGb: Number(fields.memoryGb.value),
     javaPath: fields.javaPath.value.trim(),
     jarPath: fields.jarPath.value.trim(),
-    gameDir: fields.gameDir.value.trim()
+    gameDir: fields.gameDir.value.trim(),
+    serverAddress: fields.serverAddress.value.trim()
   };
 }
 
@@ -274,10 +284,38 @@ function renderFriendList(friends = []) {
       <div>
         <strong>${escapeHtml(friend.friend_name)}</strong>
         <span>Chat megnyitása</span>
+        <span class="activity">${escapeHtml(friend.activity || 'Offline')}</span>
       </div>
-      <span>Online</span>
+      <span>${escapeHtml(friend.activity === 'Offline' ? 'Offline' : 'Aktív')}</span>
     </button>
   `).join('');
+}
+
+function renderServerStatus(result) {
+  if (!result.ok) {
+    serverStatusBadge.textContent = 'Hiba';
+    serverOnline.textContent = '-';
+    serverPlayers.textContent = '-';
+    serverPing.textContent = '-';
+    serverVersion.textContent = '-';
+    setMessage(result.message, false);
+    return;
+  }
+
+  serverStatusBadge.textContent = result.online ? 'Online' : 'Offline';
+  serverOnline.textContent = result.online ? 'Igen' : 'Nem';
+  serverPlayers.textContent = result.players || '-';
+  serverPing.textContent = result.online ? `${result.ping} ms` : '-';
+  serverVersion.textContent = result.version || '-';
+  setMessage(result.message, result.ok);
+}
+
+async function refreshServer() {
+  refreshServerStatus.disabled = true;
+  serverStatusBadge.textContent = 'Lekérés...';
+  const result = await api.serverStatus(fields.serverAddress.value.trim());
+  renderServerStatus(result);
+  refreshServerStatus.disabled = false;
 }
 
 function renderMessages(messages = []) {
@@ -331,6 +369,7 @@ function hydrate(settings) {
   fields.javaPath.value = settings.javaPath ?? '';
   fields.jarPath.value = settings.jarPath ?? '';
   fields.gameDir.value = settings.gameDir ?? '';
+  fields.serverAddress.value = settings.serverAddress ?? 'mc.hypixel.net';
   modrinthLoader.value = settings.modLoader || modrinthLoader.value || 'fabric';
   microsoftLinked = Boolean(settings.microsoftLinked);
   microsoftName.textContent = settings.microsoftName || (microsoftLinked ? 'Csatlakoztatva' : 'Nincs bejelentkezve');
@@ -348,9 +387,11 @@ async function boot() {
     setMessage(status.message, status.ok);
   });
   hydrate(await api.readSettings());
+  api.friendsProfile({ ...readForm(), activityStatus: 'menu', activityDetail: 'Menüben van' }).catch(() => {});
   const launcher = await api.detectLauncher();
   launcherStatus.textContent = launcher ? 'Launcher készen áll' : 'Saját Java launch';
   launcherStatus.dataset.state = 'ok';
+  refreshServer();
 }
 
 document.querySelector('#saveSettings').addEventListener('click', saveSettings);
@@ -361,6 +402,13 @@ tabSettings.addEventListener('click', () => setDeckTab('settings'));
 fields.memoryGb.addEventListener('input', syncHeroStats);
 fields.version.addEventListener('change', syncHeroStats);
 fields.playerName.addEventListener('input', syncHeroCharacter);
+refreshServerStatus.addEventListener('click', async () => {
+  await saveSettings();
+  await refreshServer();
+});
+fields.serverAddress.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') refreshServerStatus.click();
+});
 offlineMode.addEventListener('click', async () => {
   setAuthMode('offline');
   await saveSettings();
@@ -423,7 +471,8 @@ updateButton.addEventListener('click', async () => {
     updateButton.disabled = false;
     return;
   }
-  setMessage(`${check.message}. Letöltés indul...`);
+  const changes = (check.changelog || []).map((item) => `- ${item}`).join('\n');
+  setMessage(`${check.currentVersion} -> ${check.latestVersion}\n${changes || 'Nincs changelog.'}\nLetöltés indul...`);
   const result = await api.installUpdate();
   setMessage(result.message, result.ok);
   updateButton.disabled = false;

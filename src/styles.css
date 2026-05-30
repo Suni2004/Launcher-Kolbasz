@@ -633,6 +633,14 @@ h2 {
   font-size: 12px;
 }
 
+.friend-row .activity {
+  display: block;
+  margin-top: 4px;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .request-actions {
   display: flex;
   gap: 6px;
@@ -822,7 +830,8 @@ h2 {
 }
 
 .mini-tile,
-.memory-card {
+.memory-card,
+.server-card {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.055);
 }
@@ -865,6 +874,58 @@ select:focus {
   display: grid;
   gap: 10px;
   padding: 14px;
+}
+
+.server-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.server-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, max-content);
+  gap: 8px;
+}
+
+.server-row .ghost {
+  min-width: 0;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.server-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.server-stat-grid div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.server-stat-grid span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.server-stat-grid strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .memory-row {
@@ -934,6 +995,7 @@ input[type="range"] {
   margin-bottom: 0;
   color: #dce5d5;
   line-height: 1.45;
+  white-space: pre-line;
 }
 
 .news p[data-state="error"] {

@@ -100,6 +100,23 @@
             <div class="mini-tile"><span>Státusz</span><strong>Kész</strong></div>
           </div>
 
+          <section class="server-card">
+            <div class="section-title">
+              <p class="eyebrow">Szerver státusz</p>
+              <strong id="serverStatusBadge">Nincs adat</strong>
+            </div>
+            <div class="server-row">
+              <input id="serverAddress" spellcheck="false" placeholder="mc.hypixel.net" />
+              <button class="ghost" id="refreshServerStatus" type="button">Frissítés</button>
+            </div>
+            <div class="server-stat-grid">
+              <div><span>Online</span><strong id="serverOnline">-</strong></div>
+              <div><span>Játékosok</span><strong id="serverPlayers">-</strong></div>
+              <div><span>Ping</span><strong id="serverPing">-</strong></div>
+              <div><span>Verzió</span><strong id="serverVersion">-</strong></div>
+            </div>
+          </section>
+
           <label>Verzió<select id="version"></select></label>
 
           <div class="memory-card">
