@@ -123,7 +123,11 @@ async function checkForUpdate() {
       ok: true,
       hasUpdate,
       manifest,
-      message: hasUpdate ? `Uj verzio elerheto: ${manifest.version}` : `Nincs uj verzio. Aktualis: ${appVersion()}`
+      currentVersion: appVersion(),
+      latestVersion: manifest.version,
+      message: hasUpdate
+        ? `Van frissebb verzio: ${appVersion()} -> ${manifest.version}`
+        : `Nincs frissebb verzio. Aktualis launcher: ${appVersion()}`
     };
   } catch (error) {
     return { ok: false, message: `Update ellenorzes hiba: ${error.message}` };

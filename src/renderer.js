@@ -196,10 +196,15 @@ jarButton.addEventListener('click', async () => {
 
 updateButton.addEventListener('click', async () => {
   updateButton.disabled = true;
-  setMessage('Update ellenorzese...');
+  setMessage('Frissites keresese...');
   const check = await api.checkUpdate();
-  if (!check.ok || !check.hasUpdate) {
+  if (!check.ok) {
     setMessage(check.message, check.ok);
+    updateButton.disabled = false;
+    return;
+  }
+  if (!check.hasUpdate) {
+    setMessage(check.message || 'Nincs frissebb verzio. A launcher naprakész.');
     updateButton.disabled = false;
     return;
   }
