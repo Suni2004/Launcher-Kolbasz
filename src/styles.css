@@ -577,8 +577,15 @@ h2 {
 .friend-add-row,
 .chat-input-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 76px;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, max-content);
   gap: 8px;
+}
+
+.friend-add-row .ghost,
+.chat-input-row .ghost {
+  min-width: 0;
+  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .request-list,
@@ -931,4 +938,41 @@ input[type="range"] {
 
 .news p[data-state="error"] {
   color: var(--red);
+}
+
+@media (max-width: 1260px) {
+  .hero {
+    padding-left: 42px;
+    padding-right: 28px;
+  }
+
+  .hero-content {
+    width: min(460px, 72%);
+  }
+
+  h1 {
+    max-width: 440px;
+    font-size: clamp(56px, 6vw, 76px);
+  }
+
+  .lead {
+    max-width: 430px;
+  }
+
+  .character-stage {
+    right: 26px;
+    bottom: 94px;
+    transform: scale(0.86);
+    transform-origin: right bottom;
+  }
+}
+
+@media (max-width: 1100px) {
+  .hero-content {
+    width: min(430px, 96%);
+  }
+
+  .character-stage {
+    display: none;
+  }
 }

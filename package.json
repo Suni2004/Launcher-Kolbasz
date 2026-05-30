@@ -1,6 +1,6 @@
 {
   "name": "kolbasz-launcher",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "Kolbász Launcher - modern Minecraft launcher Windowsra és macOS-re.",
   "main": "src/main.js",
   "author": "Kolbász Launcher",
