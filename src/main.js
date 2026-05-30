@@ -148,8 +148,26 @@ function modrinthJson(pathname, params = {}) {
 function mavenArtifactPath(name) {
   const parts = String(name).split(':');
   if (parts.length < 3) throw new Error(`Hibas Maven artifact: ${name}`);
-  const [group, artifact, version] = parts;
-  return `${group.replace(/\./g, '/')}/${artifact}/${version}/${artifact}-${version}.jar`;
+  const [group, artifact, version, classifier] = parts;
+  const suffix = classifier ? `-${classifier}` : '';
+  return `${group.replace(/\./g, '/')}/${artifact}/${version}/${artifact}-${version}${suffix}.jar`;
+}
+
+function normalizeMavenLibrary(library) {
+  const url = library.url || 'https://libraries.minecraft.net/';
+  const artifactPath = library.downloads?.artifact?.path || mavenArtifactPath(library.name);
+  return {
+    ...library,
+    url,
+    downloads: {
+      ...(library.downloads || {}),
+      artifact: {
+        ...(library.downloads?.artifact || {}),
+        path: artifactPath,
+        url: library.downloads?.artifact?.url || new URL(artifactPath, url).toString()
+      }
+    }
+  };
 }
 
 async function ensureFabricProfile(gameDir, minecraftVersion) {
@@ -174,10 +192,7 @@ async function ensureFabricProfile(gameDir, minecraftVersion) {
       name: fabric.intermediary.maven,
       url: 'https://maven.fabricmc.net/'
     }
-  ].map((library) => ({
-    ...library,
-    url: library.url || 'https://libraries.minecraft.net/'
-  }));
+  ].map(normalizeMavenLibrary);
 
   fs.writeFileSync(versionJson, JSON.stringify({
     id: versionId,
@@ -194,11 +209,12 @@ async function ensureFabricProfile(gameDir, minecraftVersion) {
   }, null, 2));
 
   for (const library of libraries) {
-    if (!library.url || !library.name) continue;
-    const libraryPath = mavenArtifactPath(library.name);
+    const artifact = library.downloads?.artifact;
+    if (!artifact?.url || !artifact?.path) continue;
+    const libraryPath = artifact.path;
     const destination = path.join(gameDir, 'libraries', libraryPath);
     if (!fs.existsSync(destination)) {
-      await downloadFile(new URL(libraryPath, library.url).toString(), destination);
+      await downloadFile(artifact.url, destination);
     }
   }
 
